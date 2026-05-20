@@ -12,7 +12,8 @@
         "http://localhost:18789",
         "http://127.0.0.1:18789",
         "https://__VM_HOSTNAME__"
-      ]
+      ],
+      "dangerouslyDisableDeviceAuth": true
     }
   },
   "update": {
@@ -95,7 +96,9 @@
   "channels": {
     "telegram": {
       "enabled": true,
-      "botToken": "__TELEGRAM_BOT_TOKEN__"
+      "botToken": "__TELEGRAM_BOT_TOKEN__",
+      "dmPolicy": "allowlist",
+      "allowFrom": ["__TELEGRAM_CHAT_ID__"]
     }
   },
   "commands": {

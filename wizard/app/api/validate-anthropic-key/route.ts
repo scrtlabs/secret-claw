@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isDemoMode } from "@/lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,11 @@ export async function POST(request: Request) {
   if (!apiKey) {
     return NextResponse.json({ valid: false, error: "apiKey missing" }, { status: 400 });
   }
+
+  if (isDemoMode()) {
+    return NextResponse.json({ valid: true, latencyMs: 220, demo: true });
+  }
+
   if (!apiKey.startsWith("sk-ant-")) {
     return NextResponse.json({ valid: false, error: "expected key to start with 'sk-ant-'" });
   }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateSecretAiKey } from "@/lib/portal-client";
+import { isDemoMode } from "@/lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,10 @@ export async function POST(request: Request) {
   const apiKey = (body.apiKey || "").trim();
   if (!apiKey) {
     return NextResponse.json({ valid: false, error: "apiKey missing" }, { status: 400 });
+  }
+
+  if (isDemoMode()) {
+    return NextResponse.json({ valid: true, vmCount: 3, latencyMs: 180, demo: true });
   }
 
   const result = await validateSecretAiKey(apiKey);

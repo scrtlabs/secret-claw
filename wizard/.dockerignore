@@ -1,0 +1,34 @@
+# Keep the build context small. The Dockerfile only needs:
+#   wizard/package.json wizard/package-lock.json wizard/<source>
+#   deploys/byo/templates/
+#
+# Build context is the secret-claw/ repo root (set in docker-compose.yml).
+# Anything else under the repo root that isn't wizard/ or
+# deploys/byo/templates/ is irrelevant to the image.
+
+# Everything by default
+*
+
+# Then allow back the bits we actually need:
+!wizard/
+!deploys/
+
+# But not the heavy / generated / sensitive subtrees
+wizard/node_modules
+wizard/.next
+wizard/out
+wizard/.env
+wizard/.env.local
+wizard/.env.*.local
+wizard/tests
+wizard/prototypes
+wizard/Dockerfile
+wizard/docker-compose.yml
+wizard/dev.log
+wizard/*.log
+
+# We only need the templates from deploys/byo/, not the scripts or examples
+deploys/byo/scripts
+deploys/byo/example-config
+deploys/byo/README.md
+deploys/secret

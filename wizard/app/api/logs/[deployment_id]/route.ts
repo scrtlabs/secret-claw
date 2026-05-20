@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { isDemoMode, demoLogLines } from "@/lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,10 @@ export async function GET(
   }
   if (record.status !== "ready" || !record.vm_hostname) {
     return NextResponse.json({ lines: [] });
+  }
+
+  if (isDemoMode()) {
+    return NextResponse.json({ lines: demoLogLines() });
   }
 
   // OpenClaw's documented log endpoint is TBD — see README Known Gaps.

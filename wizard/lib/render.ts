@@ -22,9 +22,13 @@ function resolveTemplatesDir(): string {
   if (process.env.SECRET_CLAW_TEMPLATES_DIR) {
     return path.resolve(process.env.SECRET_CLAW_TEMPLATES_DIR);
   }
-  // Templates live in the canonical deploy template at ../deploys/byo/templates
-  // relative to the wizard/ project root. process.cwd() is the project root
-  // for both `next dev`, `next build`, and `node --test` invocations.
+  // wizard/templates/ is populated by scripts/copy-templates.mjs at prebuild
+  // time. On Vercel / Cloudflare Pages / any host whose build context is
+  // wizard/-only, this is where the templates live. Falls back to the
+  // canonical ../deploys/byo/templates/ for local dev when prebuild hasn't
+  // run, matching where the Python renderer reads from.
+  const local = path.resolve(process.cwd(), "templates");
+  if (fs.existsSync(local)) return local;
   return path.resolve(process.cwd(), "..", "deploys", "byo", "templates");
 }
 
@@ -38,7 +42,26 @@ const UNSUBSTITUTED_TOKEN_RE = /__[A-Z][A-Z0-9_]+__/g;
 const YAML_BLOCK_INDENT = 6;
 const B64_WRAP_COLS = 76;
 
-const DEFAULT_VM_HOSTNAME = "*.vm.scrtlabs.com";
+// When the caller doesn't know the assigned VM hostname yet (the wizard's
+// production submit path — the SecretAI portal returns the hostname only
+// after vm/create), we put this sentinel into the rendered openclaw.json
+// `controlUi.allowedOrigins`. The seed script in
+// `deploys/byo/templates/docker-compose.yml` `sed`-replaces the sentinel
+// with $VM_HOSTNAME (from usr/.env, populated by the SecretVM platform)
+// on first boot, before the gateway starts.
+//
+// OpenClaw's controlUi rejects wildcard patterns ("Use full origins such
+// as http://localhost:5173, not wildcard patterns"), so we cannot just
+// inline `*.vm.scrtlabs.com`. The runtime substitution is the only path
+// that produces a literal origin matching the assigned hostname.
+//
+// Hyphens (not underscores) between words are deliberate — they keep the
+// sentinel from matching the renderer's `__[A-Z][A-Z0-9_]+__` regex for
+// "unsubstituted tokens remain". Without hyphens, the renderer would bail
+// when it encountered the sentinel literally in the docker-compose.yml
+// seed script (where the sed command lives).
+const RUNTIME_HOSTNAME_SENTINEL = "__RUNTIME-VM-HOSTNAME__";
+const DEFAULT_VM_HOSTNAME = RUNTIME_HOSTNAME_SENTINEL;
 
 function readTemplate(...parts: string[]): string {
   return fs.readFileSync(path.join(TEMPLATES_DIR, ...parts), "utf-8");
@@ -63,7 +86,11 @@ function deriveWelcomeAtIso(): string {
 }
 
 function isValidHostname(host: string): boolean {
-  return HOSTNAME_RE.test(host) || HOSTNAME_WILDCARD_RE.test(host);
+  return (
+    host === RUNTIME_HOSTNAME_SENTINEL ||
+    HOSTNAME_RE.test(host) ||
+    HOSTNAME_WILDCARD_RE.test(host)
+  );
 }
 
 function b64ForYamlBlock(body: string): string {

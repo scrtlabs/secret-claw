@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "prebuild": "node scripts/copy-templates.mjs",
+    "dev": "node scripts/copy-templates.mjs && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "pretest": "node scripts/copy-templates.mjs",
     "test": "node --test --import tsx tests/*.test.ts"
   },
   "dependencies": {
-    "@vercel/functions": "^1.5.0",
     "next": "14.2.16",
     "react": "18.3.1",
     "react-dom": "18.3.1"

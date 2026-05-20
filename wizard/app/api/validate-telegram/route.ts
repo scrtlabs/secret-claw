@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isDemoMode, DEMO_BOT_USERNAME } from "@/lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,11 @@ export async function POST(request: Request) {
   if (!botToken) {
     return NextResponse.json({ valid: false, error: "botToken missing" }, { status: 400 });
   }
+
+  if (isDemoMode()) {
+    return NextResponse.json({ valid: true, botUsername: DEMO_BOT_USERNAME, demo: true });
+  }
+
   if (!botToken.includes(":")) {
     return NextResponse.json({ valid: false, error: "expected token in form <bot_id>:<secret>" });
   }

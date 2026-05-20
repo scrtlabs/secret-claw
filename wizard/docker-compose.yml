@@ -1,0 +1,64 @@
+# Secret Claw wizard — local-test docker-compose.
+#
+# Builds the wizard's production image (see ./Dockerfile) and exposes it on
+# host port 3000. The image bundles the deploy templates from
+# ../deploys/byo/templates/ so SECRET_CLAW_TEMPLATES_DIR=/app/templates
+# resolves inside the container.
+#
+# Usage:
+#   docker compose build
+#   docker compose up
+#   # open http://localhost:3000/
+#   # Ctrl+C, then:
+#   docker compose down
+#
+# No host volumes are mounted — the in-memory deployment store inside the
+# container is lost when the container stops. That matches the Chunk 3
+# scope (Chunk 4 introduces Supabase persistence).
+
+services:
+  wizard:
+    build:
+      # Build context is the secret-claw/ repo root so the Dockerfile can
+      # see both ./wizard/ and ./deploys/byo/templates/.
+      context: ..
+      dockerfile: wizard/Dockerfile
+    image: secret-claw-wizard:local
+    container_name: secret-claw-wizard
+    ports:
+      # Host port 3001 → container 3000. 3000 is reserved by another stack
+      # on the dev host (Docker port allocation leftover); change to
+      # "3000:3000" once that's freed if you prefer the default.
+      - "3001:3000"
+    environment:
+      NODE_ENV: production
+      # Redundant with the ENV in the Dockerfile, but explicit here so
+      # operators can see/override the value without rebuilding the image.
+      SECRET_CLAW_TEMPLATES_DIR: /app/templates
+      # Demo mode is ON by default for this compose file — the wizard
+      # accepts any non-empty input, fakes a 12-second provisioning
+      # lifecycle, and returns synthetic logs. Lets you click through
+      # the whole UI without real credentials.
+      #
+      # To do an end-to-end test against the live portal instead, run:
+      #   $env:SECRET_CLAW_DEMO_MODE=0; docker compose up
+      # or set it in a `.env` file alongside this compose file.
+      SECRET_CLAW_DEMO_MODE: ${SECRET_CLAW_DEMO_MODE:-1}
+      # Override these via `.env` or shell env if you want to point at a
+      # mock portal / different Anthropic endpoint for testing. Ignored
+      # in demo mode.
+      SECRETAI_PORTAL_URL: ${SECRETAI_PORTAL_URL:-https://secretai.scrtlabs.com}
+      ANTHROPIC_API_URL: ${ANTHROPIC_API_URL:-https://api.anthropic.com}
+      TELEGRAM_API_URL: ${TELEGRAM_API_URL:-https://api.telegram.org}
+      SECRETVM_TYPE_ID: ${SECRETVM_TYPE_ID:-default}
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/create-agent').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s

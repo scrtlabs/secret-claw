@@ -20,3 +20,8 @@ npm-debug.log*
 
 # vercel
 .vercel
+
+# build-time copy of deploys/byo/templates — populated by
+# scripts/copy-templates.mjs at prebuild. deploys/byo/templates/ stays the
+# canonical source of truth.
+templates/

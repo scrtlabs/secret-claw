@@ -12,11 +12,21 @@
 #     seed runs as root; the seed itself drops privs to user `node` (uid 1000)
 #     via `runuser` before exec'ing tini + node openclaw.mjs.
 #
-# SecretVM's compose rewriter will additionally:
-#   - Add a `traefik` service + bridge network and inject Traefik router
-#     labels on openclaw-gateway pointing to port 18789. We do NOT declare
-#     Traefik ourselves.
-#   - Inject `env_file: - usr/.env`. The vars in that file are SecretVM
+# HTTPS / Traefik:
+#   We declare the Traefik sidecar, network, labels, and TLS config block
+#   ourselves — modeled byte-for-byte on what the SecretAI portal's "HTTPS"
+#   toggle injects when an operator clicks the slider on the create-VM form.
+#   Empirically the rewriter does NOT add Traefik for arbitrary compose
+#   uploads (an earlier assumption in this file; corrected May 20 2026 after
+#   comparing portal-toggle-on vs toggle-off compose outputs).
+#
+#   `$DOMAIN_NAME` in the Traefik router rule is a placeholder the SecretVM
+#   platform substitutes with the assigned VM hostname when staging the
+#   compose for deploy. Cert material is read from /mnt/secure/cert/, which
+#   the platform mounts read-only at boot.
+#
+# SecretVM compose rewriter still:
+#   - Injects `env_file: - usr/.env`. The vars in that file are SecretVM
 #     scaffolding (id_tx_io etc.) and do not collide with our env.
 #
 # See README.md for the rendering and deploy flow.
@@ -68,15 +78,60 @@ services:
       timeout: 5s
       retries: 5
       start_period: 60s
+    networks:
+      - traefik
     labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openclaw-gateway.rule=Host(`$DOMAIN_NAME`)"
+      - "traefik.http.routers.openclaw-gateway.entrypoints=websecure"
+      - "traefik.http.routers.openclaw-gateway.tls=true"
       - "traefik.http.routers.openclaw-gateway.priority=1000"
+      - "traefik.http.services.openclaw-gateway.loadbalancer.server.port=18789"
       - "secret-claw.deployment_id=__DEPLOYMENT_ID__"
+
+  traefik:
+    image: traefik:v2.10
+    command:
+      - --api.insecure=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls.options=default@file
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/secure/cert:/certs:ro
+    networks:
+      - traefik
+    configs:
+      - source: tls_config
+        target: /etc/traefik/dynamic/tls.yml
 
 volumes:
   openclaw_state:
   openclaw_auth_secrets:
 
+networks:
+  traefik:
+    driver: bridge
+
 configs:
+  tls_config:
+    content: |-
+      tls:
+        certificates:
+          - certFile: /certs/secret_vm_fullchain.pem
+            keyFile: /certs/secret_vm_private.pem
+        stores:
+          default:
+            defaultCertificate:
+              certFile: /certs/secret_vm_fullchain.pem
+              keyFile: /certs/secret_vm_private.pem
   openclaw_seed:
     content: |
       #!/bin/sh
@@ -107,6 +162,31 @@ configs:
         base64 -d > /home/node/.openclaw/agents/main/workspace/USER.md <<'USER_MD_B64_EOF'
       __USER_MD_B64__
       USER_MD_B64_EOF
+        # Substitute the assigned hostname into controlUi.allowedOrigins.
+        # The renderer leaves __RUNTIME-VM-HOSTNAME__ (hyphens, not
+        # underscores — see lib/render.ts for why) as a sentinel because
+        # the SecretAI portal assigns the actual hostname only after
+        # vm/create returns — too late for the renderer.
+        #
+        # $DOMAIN_NAME (single $) — compose interpolates this at
+        # PARSE TIME on the SecretVM deploy host, before the script is
+        # staged into the container. The HTTPS toggle's Traefik label
+        # (Host(`$DOMAIN_NAME`)) uses the same mechanism and is the
+        # proof it works on that host. By the time the seed runs, the
+        # literal hostname is already baked into this line.
+        #
+        # $$VM_HOSTNAME (escaped) is a shell-time fallback for cases
+        # where DOMAIN_NAME was unset at compose parse but the operator
+        # populated usr/.env with VM_HOSTNAME (amethyst-eel convention).
+        SC_HOST="$DOMAIN_NAME"
+        [ -z "$$SC_HOST" ] && SC_HOST="$${VM_HOSTNAME:-}"
+        if [ -n "$$SC_HOST" ]; then
+          sed -i "s|__RUNTIME-VM-HOSTNAME__|$$SC_HOST|g" /home/node/.openclaw/openclaw.json
+          echo "[seed] substituted hostname=$$SC_HOST into openclaw.json"
+        else
+          echo "[seed] WARN: compose-time DOMAIN_NAME and shell-time VM_HOSTNAME both empty; controlUi will reject browser requests" >&2
+          echo "[seed] env candidates: $$(env | grep -iE 'host|domain|vm' | cut -d= -f1 | tr '\n' ',')" >&2
+        fi
         chown -R 1000:1000 /home/node/.openclaw
         echo "[seed] done"
       else
