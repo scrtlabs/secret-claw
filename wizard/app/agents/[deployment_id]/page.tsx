@@ -161,7 +161,7 @@ export default function AgentDetailPage({ params }: PageProps) {
                   label: "Model",
                   value:
                     record.tier === "secret"
-                      ? "qwq:32b"
+                      ? "gemma4:31b"
                       : "Claude Sonnet 4.6",
                   mono: true,
                 },

@@ -313,7 +313,7 @@ export default function CreateAgentPage() {
               />
               <SelectionCard
                 title="Secret"
-                description="Model hosted on SecretAI for end-to-end dual attestation. Powered by qwq:32b on SecretAI rytn (Qwen reasoning model, tool-capable, qwen2 family)."
+                description="Model hosted on SecretAI for end-to-end dual attestation. Powered by gemma4:31b on SecretAI rytn (tool-capable, parallel tool calls, 256K context)."
                 selected={tier === "secret"}
                 onClick={() => setTier("secret")}
               />
@@ -389,11 +389,11 @@ export default function CreateAgentPage() {
               id="section-anthropic"
               index={3}
               title="Inference"
-              helper="Secret tier runs inference on SecretAI's attested infrastructure — qwq:32b on rytn. Uses the same SecretAI key from Section 2; no separate API key needed."
+              helper="Secret tier runs inference on SecretAI's attested infrastructure — gemma4:31b on rytn. Uses the same SecretAI key from Section 2; no separate API key needed."
             >
               <div className="rounded-md border border-portal-border bg-portal-bg px-3 py-2 text-xs text-portal-muted">
-                <span className="font-mono text-portal-text">secretai-rytn / qwq:32b</span>
-                <span className="ml-3 text-portal-mutedDim">· 40K context · attested compute</span>
+                <span className="font-mono text-portal-text">secretai-rytn / gemma4:31b</span>
+                <span className="ml-3 text-portal-mutedDim">· 256K context · attested compute</span>
               </div>
             </SectionShell>
           )}
