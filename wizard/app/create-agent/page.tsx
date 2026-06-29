@@ -103,9 +103,13 @@ export default function CreateAgentPage() {
 
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Pre-populate the SecretAI key if the homepage Google sign-in stub stashed
-  // one in sessionStorage. Cleared after read so it doesn't linger across the
-  // tab's lifetime. (Replaced by proper session management in Track A.)
+  // On mount: (1) pre-populate the SecretAI key if the homepage Google sign-in
+  // stub stashed one in sessionStorage (cleared after read so it doesn't linger
+  // across the tab's lifetime — replaced by proper session management in Track
+  // A); (2) pre-select runtime/tier from the homepage "What you can deploy"
+  // cards, which carry the choice in the redirect URL (?runtime=…&tier=…). Read
+  // from window.location.search rather than useSearchParams to avoid forcing a
+  // Suspense boundary on this client page.
   useEffect(() => {
     try {
       const stashed = sessionStorage.getItem(SECRETAI_KEY_STORAGE_KEY);
@@ -115,6 +119,15 @@ export default function CreateAgentPage() {
       }
     } catch {
       // sessionStorage may be unavailable (private windows); no-op.
+    }
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const r = params.get("runtime");
+      if (r === "openclaw" || r === "hermes") setRuntime(r);
+      const t = params.get("tier");
+      if (t === "byo" || t === "secret") setTier(t);
+    } catch {
+      // Malformed/absent query string; keep defaults.
     }
   }, []);
 

@@ -1,10 +1,55 @@
 "use client";
 
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 // sessionStorage key the deploy wizard reads on mount to pre-populate the
 // SecretAI key field. Keep this string in sync with create-agent/page.tsx.
 export const SECRETAI_KEY_STORAGE_KEY = "secretforge:secretai-key";
+
+interface SignInOptions {
+  redirectTo?: string; // where to land after auth; defaults to the wizard
+  onSuccess?: (apiKey: string) => void;
+  onError?: (err: Error) => void;
+}
+
+// Shared sign-in behaviour, used by both the GoogleSignInButton and the
+// homepage "What you can deploy" cards (which route through sign-in carrying
+// a pre-selected runtime/tier in the redirect URL).
+export function useGoogleSignIn() {
+  const router = useRouter();
+  return useCallback(
+    (opts: SignInOptions = {}) => {
+      const { redirectTo = "/create-agent", onSuccess, onError } = opts;
+      // ── SECRET LABS INTEGRATION POINT ─────────────────────────────────────────
+      // Replace the stub below with your Google OAuth flow.
+      // On successful auth + key provisioning, run the success branch with the
+      // provisioned SecretAI key:
+      //   stash it (sessionStorage) → call onSuccess(key) → router.push(redirectTo)
+      // On failure, call onError(new Error("reason")).
+      // ──────────────────────────────────────────────────────────────────────────
+      console.log("[GoogleSignIn] TODO: wire Google OAuth flow here.");
+      alert(
+        "TODO: Google sign-in is not wired yet.\n\nThis is the Secret Labs integration point. " +
+          "For now, continuing into the deploy wizard with a stub key so you can preview the flow.",
+      );
+      try {
+        const apiKey = ""; // skeleton stub — real key comes from Secret Labs auth
+        try {
+          sessionStorage.setItem(SECRETAI_KEY_STORAGE_KEY, apiKey);
+        } catch {
+          // sessionStorage may be blocked (private windows); wizard still works,
+          // the field just won't be pre-filled.
+        }
+        if (onSuccess) onSuccess(apiKey);
+        router.push(redirectTo);
+      } catch (err) {
+        if (onError) onError(err instanceof Error ? err : new Error(String(err)));
+      }
+    },
+    [router],
+  );
+}
 
 interface GoogleSignInButtonProps {
   onSuccess?: (apiKey: string) => void; // Secret Labs calls this post-auth
@@ -12,6 +57,7 @@ interface GoogleSignInButtonProps {
   className?: string;
   size?: "sm" | "lg";
   label?: string;
+  redirectTo?: string; // override post-auth destination (e.g. pre-selected wizard)
 }
 
 function GoogleGlyph({ className }: { className?: string }) {
@@ -44,54 +90,17 @@ export function GoogleSignInButton({
   className,
   size = "lg",
   label = "Sign in with Google",
+  redirectTo,
 }: GoogleSignInButtonProps) {
-  const router = useRouter();
-
-  // Default post-auth behaviour: stash the provisioned SecretAI key in
-  // sessionStorage (temporary — replaced by proper session management in
-  // Track A) and route into the deploy wizard, which pre-populates from it.
-  function handleSuccess(apiKey: string) {
-    try {
-      sessionStorage.setItem(SECRETAI_KEY_STORAGE_KEY, apiKey);
-    } catch {
-      // sessionStorage may be blocked (private windows); wizard still works,
-      // the field just won't be pre-filled.
-    }
-    if (onSuccess) onSuccess(apiKey);
-    router.push("/create-agent");
-  }
-
-  function handleClick() {
-    // ── SECRET LABS INTEGRATION POINT ─────────────────────────────────────────
-    // Replace the onClick stub below with your Google OAuth flow.
-    // On successful auth + key provisioning, call:
-    //   props.onSuccess(secretAiApiKey)
-    // The key will be stored in session and pre-populated in the deploy wizard.
-    // On failure, call:
-    //   props.onError(new Error("reason"))
-    // ──────────────────────────────────────────────────────────────────────────
-    console.log("[GoogleSignInButton] TODO: wire Google OAuth flow here.");
-    alert(
-      "TODO: Google sign-in is not wired yet.\n\nThis is the Secret Labs integration point. " +
-        "For now, continuing into the deploy wizard with a stub key so you can preview the flow.",
-    );
-    try {
-      // Skeleton: proceed with a placeholder so the wizard flow is navigable.
-      handleSuccess("");
-    } catch (err) {
-      if (onError) onError(err instanceof Error ? err : new Error(String(err)));
-    }
-  }
+  const signIn = useGoogleSignIn();
 
   const sizeClasses =
-    size === "lg"
-      ? "gap-3 px-5 py-3 text-sm"
-      : "gap-2 px-3 py-1.5 text-xs";
+    size === "lg" ? "gap-3 px-5 py-3 text-sm" : "gap-2 px-3 py-1.5 text-xs";
 
   return (
     <button
       type="button"
-      onClick={handleClick}
+      onClick={() => signIn({ redirectTo, onSuccess, onError })}
       className={`inline-flex items-center justify-center rounded-md border border-portal-border bg-white font-semibold text-[#1F1F1F] shadow-sm transition-colors hover:bg-[#F5F5F5] ${sizeClasses} ${className || ""}`}
     >
       <GoogleGlyph className={size === "lg" ? "h-5 w-5" : "h-4 w-4"} />
