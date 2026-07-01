@@ -1,9 +1,18 @@
 import * as postmark from "postmark";
 import crypto from "crypto";
 
-const client = new postmark.ServerClient(process.env.POSTMARK_SERVER_TOKEN ?? "");
-const FROM = process.env.POSTMARK_FROM_EMAIL ?? "secretai@scrtlabs.com";
-const BASE_URL = (process.env.NEXTAUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
+// Lazy client so Postmark is not instantiated at build time (no token in Docker build env).
+function getClient() {
+  return new postmark.ServerClient(process.env.POSTMARK_SERVER_TOKEN ?? "");
+}
+
+function getFrom() {
+  return process.env.POSTMARK_FROM_EMAIL ?? "secretai@scrtlabs.com";
+}
+
+function getBaseUrl() {
+  return (process.env.NEXTAUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
 
 export function generateToken(): string {
   return crypto.randomBytes(32).toString("hex");
@@ -14,9 +23,9 @@ export function generateExpiry(hours: number): Date {
 }
 
 export async function sendConfirmationEmail(email: string, token: string) {
-  const link = `${BASE_URL}/confirm-email?token=${token}`;
-  await client.sendEmail({
-    From: FROM,
+  const link = `${getBaseUrl()}/confirm-email?token=${token}`;
+  await getClient().sendEmail({
+    From: getFrom(),
     To: email,
     Subject: "Confirm your email address – SecretForge",
     HtmlBody: `
@@ -31,24 +40,25 @@ export async function sendConfirmationEmail(email: string, token: string) {
 }
 
 export async function sendWelcomeEmail(email: string) {
-  await client.sendEmail({
-    From: FROM,
+  const baseUrl = getBaseUrl();
+  await getClient().sendEmail({
+    From: getFrom(),
     To: email,
     Subject: "Welcome to SecretForge!",
     HtmlBody: `
       <p>Hi,</p>
       <p>Your email address has been confirmed. Welcome to SecretForge!</p>
-      <p><a href="${BASE_URL}/create-agent">Deploy your first agent →</a></p>
+      <p><a href="${baseUrl}/create-agent">Deploy your first agent →</a></p>
     `,
-    TextBody: `Welcome to SecretForge!\n\nYour email has been confirmed.\n\nDeploy your first agent: ${BASE_URL}/create-agent`,
+    TextBody: `Welcome to SecretForge!\n\nYour email has been confirmed.\n\nDeploy your first agent: ${baseUrl}/create-agent`,
     MessageStream: "outbound",
   });
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const link = `${BASE_URL}/reset-password?token=${token}`;
-  await client.sendEmail({
-    From: FROM,
+  const link = `${getBaseUrl()}/reset-password?token=${token}`;
+  await getClient().sendEmail({
+    From: getFrom(),
     To: email,
     Subject: "Reset your password – SecretForge",
     HtmlBody: `
