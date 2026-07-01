@@ -41,6 +41,11 @@ services:
       # Google OAuth — create credentials at console.cloud.google.com
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      # PostgreSQL — for user accounts (sign-up, email confirmation, password reset)
+      DATABASE_URL: ${DATABASE_URL}
+      # Postmark — for confirmation and reset emails
+      POSTMARK_SERVER_TOKEN: ${POSTMARK_SERVER_TOKEN}
+      POSTMARK_FROM_EMAIL: ${POSTMARK_FROM_EMAIL:-secretai@scrtlabs.com}
       # Demo mode is ON by default for this compose file — the wizard
       # accepts any non-empty input, fakes a 12-second provisioning
       # lifecycle, and returns synthetic logs. Lets you click through

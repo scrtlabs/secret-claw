@@ -20,6 +20,9 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 COPY wizard/package.json wizard/package-lock.json* ./
 RUN npm ci
+# Generate Prisma client for the Alpine (musl) target
+COPY wizard/prisma ./prisma
+RUN npx prisma generate
 
 # ---------- Stage 2: build ----------
 FROM node:20-alpine AS builder
@@ -48,6 +51,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+# DATABASE_URL and other secrets are injected at runtime via docker-compose / env
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
@@ -71,6 +75,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # saw). resolveTemplatesDir() in lib/render.ts reads them from
 # SECRET_CLAW_TEMPLATES_DIR=/app/templates.
 COPY --from=builder --chown=nextjs:nodejs /app/templates ./templates
+
+# Prisma client engine (generated for linux-musl in deps stage)
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 
 USER nextjs
 EXPOSE 3000

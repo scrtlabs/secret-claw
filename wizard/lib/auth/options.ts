@@ -1,6 +1,8 @@
 import { type NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/db/prisma";
 import { fromBase64, fromBech32, toBech32 } from "@cosmjs/encoding";
 import {
   Secp256k1,
@@ -124,18 +126,25 @@ const EmailPasswordProvider = CredentialsProvider({
   async authorize(credentials) {
     if (!credentials?.email || !credentials?.password) return null;
 
-    // TODO: Wire up your user database here (e.g. Prisma, Drizzle, or any
-    // other ORM).  The devportal uses bcryptjs + Prisma – replicate that
-    // pattern once a DB is provisioned for this project.
-    //
-    // Example skeleton:
-    //   const user = await db.user.findUnique({ where: { email: credentials.email } });
-    //   if (!user?.passwordHash) return null;
-    //   const ok = await bcrypt.compare(credentials.password, user.passwordHash);
-    //   if (!ok) return null;
-    //   return { id: user.id, name: user.name, email: user.email };
+    const user = await prisma.user.findUnique({
+      where: { email: credentials.email.toLowerCase() },
+    });
 
-    return null; // disabled until DB is configured
+    if (!user?.passwordHash) return null;
+
+    if (!user.emailConfirmed) {
+      throw new Error("Please confirm your email address before signing in.");
+    }
+
+    const ok = await bcrypt.compare(credentials.password, user.passwordHash);
+    if (!ok) return null;
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() },
+    });
+
+    return { id: user.sub, name: user.email.split("@")[0], email: user.email };
   },
 });
 
