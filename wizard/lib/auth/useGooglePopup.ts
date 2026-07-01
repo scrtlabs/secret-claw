@@ -1,14 +1,18 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
-export function useGooglePopup(callbackUrl = "/create-agent") {
+export function useGooglePopup(callbackUrl = "/create-agent"): [() => void, boolean] {
   const router = useRouter();
   const { update } = useSession();
+  const [isPending, setIsPending] = useState(false);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-  return useCallback(() => {
+  const open = useCallback(() => {
+    if (cleanupRef.current) cleanupRef.current();
+
     const w = 500, h = 620;
     const left = Math.round(window.screenX + (window.outerWidth - w) / 2);
     const top = Math.round(window.screenY + (window.outerHeight - h) / 2);
@@ -20,14 +24,19 @@ export function useGooglePopup(callbackUrl = "/create-agent") {
       `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`,
     );
 
+    setIsPending(true);
+
+    const cleanup = () => {
+      window.removeEventListener("message", onMessage);
+      clearInterval(closedPoll);
+      setIsPending(false);
+      cleanupRef.current = null;
+    };
+
     const onMessage = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "GOOGLE_AUTH_SUCCESS") return;
-
-      window.removeEventListener("message", onMessage);
-      clearInterval(closedPoll);
-
-      // Re-fetch the session now that the cookie exists.
+      cleanup();
       await update();
       router.push(callbackUrl);
       router.refresh();
@@ -35,12 +44,12 @@ export function useGooglePopup(callbackUrl = "/create-agent") {
 
     window.addEventListener("message", onMessage);
 
-    // Clean up listener if the user closes the popup manually.
     const closedPoll = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(closedPoll);
-        window.removeEventListener("message", onMessage);
-      }
+      if (popup?.closed) cleanup();
     }, 500);
+
+    cleanupRef.current = cleanup;
   }, [router, update, callbackUrl]);
+
+  return [open, isPending];
 }

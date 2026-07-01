@@ -16,7 +16,7 @@ export function SignInForm() {
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") ?? "/create-agent";
 
-  const openGooglePopup = useGooglePopup(callbackUrl);
+  const [openGooglePopup, googlePending] = useGooglePopup(callbackUrl);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -157,7 +157,7 @@ export function SignInForm() {
 
         <button
           type="submit"
-          disabled={emailLoading}
+          disabled={emailLoading || googlePending}
           className="w-full rounded-md bg-portal-text py-2.5 text-sm font-semibold text-portal-bg transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {emailLoading ? "Signing in…" : "Sign in"}
@@ -175,17 +175,23 @@ export function SignInForm() {
       <button
         type="button"
         onClick={openGooglePopup}
-        className="flex w-full items-center justify-center gap-3 rounded-md border border-portal-border bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] shadow-sm transition-colors hover:bg-[#F5F5F5]"
+        disabled={googlePending}
+        className="flex w-full items-center justify-center gap-3 rounded-md border border-portal-border bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] shadow-sm transition-colors hover:bg-[#F5F5F5] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <GoogleGlyph className="h-5 w-5" />
-        Continue with Google
+        {googlePending ? (
+          <Spinner className="h-5 w-5 text-[#1F1F1F]/40" />
+        ) : (
+          <GoogleGlyph className="h-5 w-5" />
+        )}
+        {googlePending ? "Waiting for Google…" : "Continue with Google"}
       </button>
 
       {/* Connect Wallet */}
       <button
         type="button"
+        disabled={googlePending}
         onClick={() => { setWalletModal("keplr"); setInstallPrompt(null); setWalletError(""); }}
-        className="flex w-full items-center justify-center gap-3 rounded-md border border-portal-border bg-portal-surface px-4 py-2.5 text-sm font-semibold text-portal-text transition-colors hover:bg-portal-border/30"
+        className="flex w-full items-center justify-center gap-3 rounded-md border border-portal-border bg-portal-surface px-4 py-2.5 text-sm font-semibold text-portal-text transition-colors hover:bg-portal-border/30 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <WalletIcon className="h-5 w-5" />
         Connect Wallet
@@ -293,6 +299,15 @@ function GoogleGlyph({ className }: { className?: string }) {
       <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
       <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
       <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>
+  );
+}
+
+function Spinner({ className }: { className?: string }) {
+  return (
+    <svg className={`animate-spin ${className ?? ""}`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
     </svg>
   );
 }
