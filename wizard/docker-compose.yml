@@ -35,6 +35,12 @@ services:
       # Redundant with the ENV in the Dockerfile, but explicit here so
       # operators can see/override the value without rebuilding the image.
       SECRET_CLAW_TEMPLATES_DIR: /app/templates
+      # NextAuth — required in production. Generate with: openssl rand -base64 32
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3001}
+      # Google OAuth — create credentials at console.cloud.google.com
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       # Demo mode is ON by default for this compose file — the wizard
       # accepts any non-empty input, fakes a 12-second provisioning
       # lifecycle, and returns synthetic logs. Lets you click through

@@ -13,8 +13,9 @@ export function useGooglePopup(callbackUrl = "/create-agent") {
     const left = Math.round(window.screenX + (window.outerWidth - w) / 2);
     const top = Math.round(window.screenY + (window.outerHeight - h) / 2);
 
+    const authRelayUrl = `${window.location.origin}/auth-relay`;
     const popup = window.open(
-      `/api/auth/signin/google?callbackUrl=${encodeURIComponent("/auth-relay")}`,
+      `/api/auth/signin/google?callbackUrl=${encodeURIComponent(authRelayUrl)}`,
       "GoogleSignIn",
       `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`,
     );
