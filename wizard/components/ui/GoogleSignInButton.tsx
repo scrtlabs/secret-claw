@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 // sessionStorage key the deploy wizard reads on mount to pre-populate the
 // SecretAI key field. Keep this string in sync with create-agent/page.tsx.
@@ -17,37 +17,14 @@ interface SignInOptions {
 // homepage "What you can deploy" cards (which route through sign-in carrying
 // a pre-selected runtime/tier in the redirect URL).
 export function useGoogleSignIn() {
-  const router = useRouter();
   return useCallback(
     (opts: SignInOptions = {}) => {
-      const { redirectTo = "/create-agent", onSuccess, onError } = opts;
-      // ── SECRET LABS INTEGRATION POINT ─────────────────────────────────────────
-      // Replace the stub below with your Google OAuth flow.
-      // On successful auth + key provisioning, run the success branch with the
-      // provisioned SecretAI key:
-      //   stash it (sessionStorage) → call onSuccess(key) → router.push(redirectTo)
-      // On failure, call onError(new Error("reason")).
-      // ──────────────────────────────────────────────────────────────────────────
-      console.log("[GoogleSignIn] TODO: wire Google OAuth flow here.");
-      alert(
-        "TODO: Google sign-in is not wired yet.\n\nThis is the Secret Labs integration point. " +
-          "For now, continuing into the deploy wizard with a stub key so you can preview the flow.",
-      );
-      try {
-        const apiKey = ""; // skeleton stub — real key comes from Secret Labs auth
-        try {
-          sessionStorage.setItem(SECRETAI_KEY_STORAGE_KEY, apiKey);
-        } catch {
-          // sessionStorage may be blocked (private windows); wizard still works,
-          // the field just won't be pre-filled.
-        }
-        if (onSuccess) onSuccess(apiKey);
-        router.push(redirectTo);
-      } catch (err) {
+      const { redirectTo = "/create-agent", onError } = opts;
+      signIn("google", { callbackUrl: redirectTo }).catch((err) => {
         if (onError) onError(err instanceof Error ? err : new Error(String(err)));
-      }
+      });
     },
-    [router],
+    [],
   );
 }
 

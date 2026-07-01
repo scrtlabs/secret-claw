@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-
-import { GoogleSignInButton } from "@/components/ui/GoogleSignInButton";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 type Runtime = "openclaw" | "hermes";
 type Tier = "secret" | "byo";
@@ -117,11 +117,16 @@ function OptionGroup<T extends string>({
 export default function WhatYouDeploy() {
   const [runtime, setRuntime] = useState<Runtime | null>(null);
   const [tier, setTier] = useState<Tier | null>(null);
+  const { status } = useSession();
+  const signedIn = status === "authenticated";
 
   const ready = runtime !== null && tier !== null;
-  const redirectTo = ready
+  const wizardUrl = ready
     ? `/create-agent?runtime=${runtime}&tier=${tier}`
     : "/create-agent";
+  const href = signedIn
+    ? wizardUrl
+    : `/sign-in?callbackUrl=${encodeURIComponent(wizardUrl)}`;
 
   return (
     <section className="py-20">
@@ -152,12 +157,16 @@ export default function WhatYouDeploy() {
         </div>
 
         <div className="mt-12 flex flex-col items-center gap-3">
-          <GoogleSignInButton
-            size="lg"
-            label={ready ? "Sign in & deploy →" : "Sign in with Google"}
-            redirectTo={redirectTo}
-            disabled={!ready}
-          />
+          <Link
+            href={href}
+            aria-disabled={!ready}
+            onClick={(e) => { if (!ready) e.preventDefault(); }}
+            className={`inline-flex items-center gap-2 rounded-md bg-portal-accent px-6 py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 ${!ready ? "pointer-events-none opacity-40" : ""}`}
+          >
+            {signedIn
+              ? ready ? "Deploy →" : "Select options above"
+              : ready ? "Sign in & deploy →" : "Sign in with Google"}
+          </Link>
           <p className="text-sm text-portal-muted">
             {ready
               ? "We'll take you to the wizard with this combination pre-selected."

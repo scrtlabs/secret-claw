@@ -1,4 +1,4 @@
-import { GoogleSignInButton } from "@/components/ui/GoogleSignInButton";
+import { NavAuthButtons } from "@/components/ui/NavAuthButtons";
 
 export default function Nav() {
   return (
@@ -12,7 +12,7 @@ export default function Nav() {
             SecretForge
           </span>
         </div>
-        <GoogleSignInButton size="sm" />
+        <NavAuthButtons size="sm" />
       </div>
     </nav>
   );

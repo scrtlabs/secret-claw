@@ -1,3 +1,5 @@
+import { SignOutButton } from "@/components/ui/SignOutButton";
+
 interface PortalHeaderProps {
   pageTitle?: string;
 }
@@ -19,12 +21,15 @@ export function PortalHeader({ pageTitle }: PortalHeaderProps) {
             {pageTitle}
           </span>
         ) : null}
-        <a
-          href="https://secretai.scrtlabs.com"
-          className="text-sm text-portal-muted transition-colors hover:text-portal-text"
-        >
-          Back to portal ↗
-        </a>
+        <div className="flex items-center gap-4">
+          <SignOutButton />
+          <a
+            href="https://secretai.scrtlabs.com"
+            className="text-sm text-portal-muted transition-colors hover:text-portal-text"
+          >
+            Back to portal ↗
+          </a>
+        </div>
       </div>
     </header>
   );

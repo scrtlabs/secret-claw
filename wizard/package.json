@@ -13,12 +13,20 @@
     "test": "node --test --import tsx tests/*.test.ts"
   },
   "dependencies": {
+    "@cosmjs/amino": "^0.39.0",
+    "@cosmjs/crypto": "^0.39.0",
+    "@cosmjs/encoding": "^0.39.0",
     "@vercel/kv": "^3.0.0",
+    "bcryptjs": "^3.0.3",
+    "ethers": "^6.17.0",
     "next": "14.2.16",
+    "next-auth": "^4.24.14",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "secretjs": "^1.22.1"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "20.16.10",
     "@types/react": "18.3.11",
     "@types/react-dom": "18.3.0",

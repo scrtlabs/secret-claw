@@ -1,6 +1,12 @@
-import { GoogleSignInButton } from "@/components/ui/GoogleSignInButton";
+"use client";
+
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 export default function Hero() {
+  const { status } = useSession();
+  const signedIn = status === "authenticated";
+
   return (
     <section
       className="relative overflow-hidden py-24 md:py-32"
@@ -27,7 +33,21 @@ export default function Hero() {
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <GoogleSignInButton size="lg" label="Get started — Sign in with Google" />
+          {signedIn ? (
+            <Link
+              href="/create-agent"
+              className="inline-flex items-center gap-2 rounded-md bg-portal-accent px-6 py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+            >
+              Launch wizard →
+            </Link>
+          ) : (
+            <Link
+              href="/sign-in"
+              className="inline-flex items-center gap-2 rounded-md bg-portal-accent px-6 py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+            >
+              Get started — Sign in
+            </Link>
+          )}
           <a
             href="#how-it-works"
             className="text-sm text-portal-muted underline-offset-4 transition-colors hover:text-portal-text hover:underline"
