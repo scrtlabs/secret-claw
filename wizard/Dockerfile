@@ -18,9 +18,12 @@
 # ---------- Stage 1: install deps ----------
 FROM node:20-alpine AS deps
 WORKDIR /app
+# openssl is required so Prisma can detect OpenSSL 3 and generate the
+# linux-musl-openssl-3.0.x engine binary (Alpine ships OpenSSL 3, not 1.1).
+RUN apk add --no-cache openssl
 COPY wizard/package.json wizard/package-lock.json* ./
 RUN npm ci
-# Generate Prisma client for the Alpine (musl) target
+# Generate Prisma client for the Alpine/musl + OpenSSL-3 target.
 COPY wizard/prisma ./prisma
 RUN npx prisma generate
 
@@ -62,7 +65,9 @@ ENV SECRET_CLAW_TEMPLATES_DIR=/app/templates
 
 # Run as a non-root user. Next.js standalone server.js binds the port the
 # `node` user can use (3000 is unprivileged on Linux).
-RUN addgroup --system --gid 1001 nodejs \
+# openssl required at runtime for Prisma to load libquery_engine-linux-musl-openssl-3.0.x.so.node
+RUN apk add --no-cache openssl \
+ && addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
 # Standalone output: a self-contained server.js + pruned node_modules.
@@ -76,7 +81,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # SECRET_CLAW_TEMPLATES_DIR=/app/templates.
 COPY --from=builder --chown=nextjs:nodejs /app/templates ./templates
 
-# Prisma client engine (generated for linux-musl in deps stage)
+# Prisma client engine (linux-musl-openssl-3.0.x, generated in deps stage)
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 
 USER nextjs
