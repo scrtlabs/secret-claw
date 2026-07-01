@@ -3,7 +3,7 @@ dockerfilePath = "wizard/Dockerfile"
 
 [deploy]
 startCommand = "node server.js"
-healthcheckPath = "/"
+healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
