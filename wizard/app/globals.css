@@ -925,6 +925,26 @@ body {
 .man__ok {
   color: var(--ember2);
 }
+/* /3 — runtime & model values fade in as the sealed card cycles */
+.man__cycle {
+  display: inline-block;
+  animation: man-cycle-in 0.42s ease;
+}
+@keyframes man-cycle-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .man__cycle {
+    animation: none;
+  }
+}
 .man__stamp {
   position: absolute;
   top: -20px;

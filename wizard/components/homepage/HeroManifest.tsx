@@ -2,6 +2,16 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+
+// The sealed card cycles through the runtimes and models you could forge.
+const RUNTIMES = ["OpenClaw", "Hermes"];
+const MODELS = [
+  "Claude · BYO key",
+  "ChatGPT · BYO key",
+  "SecretAI gpt-oss",
+  "SecretAI Gemma",
+];
 
 // Variant 3 — same Foundry copy + left column, but the right-side artifact is a
 // sealed config "manifest" card (wax-seal stamp + molten edge).
@@ -9,6 +19,15 @@ export default function HeroManifest() {
   const { status } = useSession();
   const signedIn = status === "authenticated";
   const forgeHref = signedIn ? "/create-agent" : "/sign-in";
+
+  // Advance one step every 2.4s; runtime and model swap together on each tick.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 2400);
+    return () => clearInterval(id);
+  }, []);
+  const runtime = RUNTIMES[tick % RUNTIMES.length];
+  const model = MODELS[tick % MODELS.length];
 
   return (
     <section className="fh fh--secret">
@@ -67,11 +86,15 @@ export default function HeroManifest() {
               <div className="man__body">
                 <div className="man__row">
                   <span className="man__k">runtime</span>
-                  <span className="man__v">OpenClaw</span>
+                  <span className="man__v">
+                    <span key={runtime} className="man__cycle">{runtime}</span>
+                  </span>
                 </div>
                 <div className="man__row">
                   <span className="man__k">model</span>
-                  <span className="man__v">Claude · BYO key</span>
+                  <span className="man__v">
+                    <span key={model} className="man__cycle">{model}</span>
+                  </span>
                 </div>
                 <div className="man__row">
                   <span className="man__k">keys</span>
