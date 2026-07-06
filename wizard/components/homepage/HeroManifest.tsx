@@ -12,6 +12,21 @@ const MODELS = [
   "SecretAI gpt-oss",
   "SecretAI Gemma",
 ];
+const TOOLS = [
+  "Gmail",
+  "Telegram · Slack",
+  "Discord",
+  "Notion · GitHub",
+  "Calendar · Drive",
+  "WhatsApp",
+];
+
+// Deterministic per-tick hex (seeded by tick so SSR and first client render
+// agree — avoids a hydration mismatch — then it changes on every tick).
+function attestSegment(tick: number, salt: number): string {
+  const v = ((tick + 1) * 0x9e3779b1 + salt) >>> 0;
+  return ((v >>> 8) & 0xffff).toString(16).toUpperCase().padStart(4, "0");
+}
 
 // Variant 3 — same Foundry copy + left column, but the right-side artifact is a
 // sealed config "manifest" card (wax-seal stamp + molten edge).
@@ -28,6 +43,8 @@ export default function HeroManifest() {
   }, []);
   const runtime = RUNTIMES[tick % RUNTIMES.length];
   const model = MODELS[tick % MODELS.length];
+  const tools = TOOLS[tick % TOOLS.length];
+  const attestation = `${attestSegment(tick, 0x1111)}…${attestSegment(tick, 0x7777)}`;
 
   return (
     <section className="fh fh--secret">
@@ -105,13 +122,15 @@ export default function HeroManifest() {
                 <div className="man__row">
                   <span className="man__k">tools</span>
                   <span className="man__v">
-                    Gmail · sealed <span className="man__ok">✓</span>
+                    <span key={tools} className="man__cycle">{tools}</span> · sealed{" "}
+                    <span className="man__ok">✓</span>
                   </span>
                 </div>
                 <div className="man__row">
                   <span className="man__k">attestation</span>
                   <span className="man__v">
-                    9F3A…01E4 <span className="man__ok">✓</span>
+                    <span key={attestation} className="man__cycle">{attestation}</span>{" "}
+                    <span className="man__ok">✓</span>
                   </span>
                 </div>
                 <div className="man__row">
