@@ -37,7 +37,7 @@ const MODELS: Option<Tier>[] = [
     name: "SecretAI",
     tag: "In-enclave inference",
     body:
-      "Attested open models running inside confidential compute. Your prompts never leave the VM.",
+      "Attested open source models running inside confidential compute. Your prompts never leave the VM.",
   },
   {
     id: "byo",
