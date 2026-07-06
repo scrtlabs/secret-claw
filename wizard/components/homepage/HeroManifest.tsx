@@ -20,7 +20,7 @@ export default function HeroManifest() {
 
             <h1 className="fh__h1">
               Forge an agent
-              <span className="fh__molten">only you can open.</span>
+              <span className="fh__molten">that answers only to you.</span>
             </h1>
 
             <p className="fh__sub">
@@ -126,18 +126,15 @@ export default function HeroManifest() {
                     · SEALED · ATTESTED · SECRETVM ·
                   </textPath>
                 </text>
-                <text
-                  x="50"
-                  y="60"
-                  textAnchor="middle"
-                  fontFamily="var(--font-archivo), sans-serif"
-                  fontWeight="900"
-                  fontSize="30"
-                  letterSpacing="-2"
-                  fill="url(#man-ember)"
-                >
-                  SF
-                </text>
+                <image
+                  href="/brand/logo-cream.png"
+                  x="24"
+                  y="24"
+                  width="52"
+                  height="52"
+                  preserveAspectRatio="xMidYMid meet"
+                  transform="rotate(15 50 50)"
+                />
               </svg>
             </div>
           </div>
