@@ -875,7 +875,8 @@ body {
   background: linear-gradient(180deg, #1a1613, #141110);
   border: 1px solid var(--bronze);
   border-radius: 14px;
-  overflow: hidden;
+  /* overflow stays visible so the wax seal can overhang the corner;
+     the header and bottom strip round their own corners to match. */
   font-family: var(--font-mono), monospace;
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
 }
@@ -886,6 +887,7 @@ body {
   right: 0;
   bottom: 0;
   height: 3px;
+  border-radius: 0 0 14px 14px;
   background: linear-gradient(90deg, var(--ember1), var(--ember2), var(--ember1));
   box-shadow: 0 0 18px rgba(242, 96, 12, 0.7);
 }
@@ -894,6 +896,7 @@ body {
   align-items: center;
   gap: 9px;
   padding: 13px 16px;
+  border-radius: 14px 14px 0 0;
   border-bottom: 1px solid var(--bronze);
   background: #0f0c0a;
   color: var(--cast-dim);

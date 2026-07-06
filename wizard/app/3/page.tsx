@@ -7,6 +7,7 @@ import FoundryDeploy from "@/components/homepage/foundry/FoundryDeploy";
 import FoundryFooter from "@/components/homepage/foundry/FoundryFooter";
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   icons: {
     icon: [{ url: "/brand/favicon-clean-red.ico" }],
     apple: "/brand/apple-touch-icon.png",

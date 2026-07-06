@@ -25,11 +25,15 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+// These five are used only by the exploratory homepage variants (/2, /4-/7).
+// preload:false keeps them off the critical path for every other route
+// (the main site, sign-in, and the wizard) — they load only where used.
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-grotesk",
   display: "swap",
+  preload: false,
 });
 
 const fraunces = Fraunces({
@@ -37,6 +41,7 @@ const fraunces = Fraunces({
   weight: ["400", "500", "600", "700"],
   variable: "--font-fraunces",
   display: "swap",
+  preload: false,
 });
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -44,6 +49,7 @@ const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
   variable: "--font-plex-mono",
   display: "swap",
+  preload: false,
 });
 
 const sora = Sora({
@@ -51,6 +57,7 @@ const sora = Sora({
   weight: ["400", "600", "700", "800"],
   variable: "--font-sora",
   display: "swap",
+  preload: false,
 });
 
 const poppins = Poppins({
@@ -58,6 +65,7 @@ const poppins = Poppins({
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-poppins",
   display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {

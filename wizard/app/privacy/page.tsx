@@ -10,8 +10,9 @@ export const metadata: Metadata = {
   },
 };
 
-// Adapted from the SecretAI Portal Privacy Policy (secretai.scrtlabs.com),
-// Gamma Research and Development Ltd. Styled in the /3 Foundry language.
+// Adapted for SecretForge (built on SecretVM by Gamma Research and Development
+// Ltd.), based on the SecretAI Portal policy. Styled in the /3 Foundry language.
+// Placeholder draft — not legal advice; have counsel review before launch.
 export default function PrivacyPage() {
   return (
     <div className="fg-page">
@@ -20,13 +21,14 @@ export default function PrivacyPage() {
         <article className="fglegal">
           <span className="fglegal__eyebrow">Legal</span>
           <h1 className="fglegal__h1">Privacy Policy</h1>
-          <p className="fglegal__meta">SecretAI Portal · Gamma Research and Development Ltd.</p>
+          <p className="fglegal__meta">SecretForge · operated by Gamma Research and Development Ltd.</p>
 
           <p className="fglegal__intro">
             This Privacy Policy governs how Gamma Research and Development Ltd.
-            (&ldquo;we&rdquo;, &ldquo;us&rdquo;) collects, receives, uses, and
-            stores Personal Information in connection with the SecretAI Portal at{" "}
-            <a href="https://secretai.scrtlabs.com">secretai.scrtlabs.com</a>.
+            (&ldquo;we&rdquo;, &ldquo;us&rdquo;), the operator of SecretForge,
+            collects, receives, uses, and stores Personal Information when you use
+            SecretForge to forge and run AI agents inside your own confidential
+            SecretVM enclave.
           </p>
 
           <hr className="fglegal__rule" />
@@ -34,21 +36,21 @@ export default function PrivacyPage() {
           <section>
             <h2><span className="fglegal__no">01</span> Introduction</h2>
             <p>
-              Gamma Research and Development commits to safeguarding user privacy
-              and complying with applicable laws, including the Israeli Protection
-              of Privacy Law, 5741-1981. &ldquo;Personal Information&rdquo; means
-              any information that can identify an individual, such as name, email,
-              billing details, or contact information.
+              We are committed to safeguarding user privacy and complying with
+              applicable laws, including the Israeli Protection of Privacy Law,
+              5741-1981. &ldquo;Personal Information&rdquo; means any information
+              that can identify an individual, such as name, email, billing
+              details, or contact information.
             </p>
           </section>
 
           <section>
             <h2><span className="fglegal__no">02</span> Scope and Consent</h2>
             <p>
-              By accessing the Website and services, you consent to the terms of
-              this Privacy Policy and our collection, processing, and disclosure of
-              your Personal Information. We may update this policy periodically;
-              continued use of the Website after changes become effective
+              By accessing SecretForge and its services, you consent to the terms
+              of this Privacy Policy and our collection, processing, and disclosure
+              of your Personal Information. We may update this policy periodically;
+              continued use of SecretForge after changes become effective
               constitutes acceptance of the revised Policy. Updates are posted at
               least ten days before taking effect.
             </p>
@@ -57,19 +59,21 @@ export default function PrivacyPage() {
           <section>
             <h2><span className="fglegal__no">03</span> Information We Collect</h2>
             <ul>
-              <li><b>Account Information</b> — name, email, organizational details, credentials.</li>
-              <li><b>Service Usage Data</b> — SDK logs, SecretVM deployment logs, session data.</li>
-              <li><b>Device Data</b> — browser type, IP address, time zone, operating system.</li>
-              <li><b>Payment Data</b> — processed by third-party providers; full payment details are not stored.</li>
+              <li><b>Account Information</b> — the name and email address from the Google account you sign in with.</li>
+              <li><b>Agent Configuration</b> — the choices you make in the wizard: runtime (OpenClaw / Hermes), model tier, and which connectors you enable.</li>
+              <li><b>Service Usage Data</b> — SecretVM deployment logs, session data, and diagnostic events needed to run and support your agent.</li>
+              <li><b>Device Data</b> — browser type, IP address, time zone, and operating system.</li>
+              <li><b>Payment Data</b> — processed by third-party providers; full payment details are not stored by us.</li>
             </ul>
           </section>
 
           <section>
             <h2><span className="fglegal__no">04</span> How We Use Personal Information</h2>
             <p>
-              We use Personal Information to operate our services, provision and
-              bill for them, manage accounts, provide support, monitor service
-              integrity, and comply with our legal obligations.
+              We use Personal Information to operate SecretForge, provision your
+              agent into a confidential SecretVM, manage your account and billing,
+              provide support, monitor service integrity, and comply with our legal
+              obligations.
             </p>
           </section>
 
@@ -83,16 +87,28 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2><span className="fglegal__no">06</span> Data Security</h2>
+            <h2><span className="fglegal__no">06</span> Your Keys, Tokens &amp; Enclave Data</h2>
             <p>
-              We use appropriate measures to protect your data. Workloads processed
-              via SecretVMs are executed inside Intel TDX-based Trusted Execution
-              Environments (TEEs).
+              Your agent runs inside a confidential SecretVM, executed within Intel
+              TDX-based Trusted Execution Environments (TEEs). API keys you bring
+              (such as an Anthropic key) and any connector tokens you grant (such as
+              Gmail) are sealed inside your enclave.{" "}
+              <b>We do not have plaintext access to your keys, connector tokens, or
+              the contents of your agent&rsquo;s conversations.</b>
             </p>
           </section>
 
           <section>
-            <h2><span className="fglegal__no">07</span> Your Rights</h2>
+            <h2><span className="fglegal__no">07</span> Data Security</h2>
+            <p>
+              We use appropriate technical and organizational measures to protect
+              the data we hold. Confidential-compute workloads are isolated within
+              the TEE-backed SecretVM described above.
+            </p>
+          </section>
+
+          <section>
+            <h2><span className="fglegal__no">08</span> Your Rights</h2>
             <p>
               Depending on your jurisdiction, you may access, modify, delete,
               restrict, or request portability of your Personal Information by
@@ -101,7 +117,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2><span className="fglegal__no">08</span> Data Retention</h2>
+            <h2><span className="fglegal__no">09</span> Data Retention</h2>
             <p>
               We retain Personal Information as necessary for the purposes stated
               above, unless a longer retention period is required by law, after
@@ -110,7 +126,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2><span className="fglegal__no">09</span> Contact Us</h2>
+            <h2><span className="fglegal__no">10</span> Contact Us</h2>
             <p>
               Questions about this policy? Email{" "}
               <a href="mailto:info@scrtlabs.com">info@scrtlabs.com</a>.
