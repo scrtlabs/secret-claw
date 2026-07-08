@@ -220,19 +220,28 @@ export default function FoundryDeploy() {
                 <ManifestRow k="operator" value="no access" />
               </div>
 
-              <ForgeAnimation
-                style={{
-                  position: "absolute",
-                  top: -28,
-                  right: -24,
-                  width: 160,
-                  height: 130,
-                  zIndex: 2,
-                  pointerEvents: "none",
-                  opacity: ready ? 1 : 0.3,
-                  transition: "opacity .3s ease",
-                }}
-              />
+              {/* stamp — circular badge with animation inside */}
+              <div className={`man__stamp ${ready ? "man__stamp--live" : "man__stamp--pending"}`}>
+                {/* animation clipped to circle */}
+                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", overflow: "hidden" }}>
+                  <ForgeAnimation style={{ width: "100%", height: "100%" }} />
+                </div>
+                {/* circle border + curved text overlay */}
+                <svg viewBox="0 0 96 96" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+                  <circle cx="48" cy="48" r="45" fill="none" stroke="var(--bronze)" strokeWidth="1.5" />
+                  <circle cx="48" cy="48" r="39" fill="none" stroke="var(--bronze)" strokeWidth="0.5" strokeDasharray="2 3" opacity="0.6" />
+                  <defs>
+                    <path id="deploy-top" d="M 14 48 A 34 34 0 0 1 82 48" />
+                    <path id="deploy-bot" d="M 14 48 A 34 34 0 0 0 82 48" />
+                  </defs>
+                  <text fontFamily="var(--font-mono),monospace" fontSize="7" letterSpacing="2.5" fill="var(--ember2)">
+                    <textPath href="#deploy-top" startOffset="50%" textAnchor="middle">SEALED · FORGED</textPath>
+                  </text>
+                  <text fontFamily="var(--font-mono),monospace" fontSize="7" letterSpacing="2" fill="var(--cast-dim)">
+                    <textPath href="#deploy-bot" startOffset="50%" textAnchor="middle">SecretForge</textPath>
+                  </text>
+                </svg>
+              </div>
             </div>
           </div>
         </div>
