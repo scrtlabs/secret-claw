@@ -72,6 +72,7 @@ body {
   align-items: center;
   gap: 11px;
   margin-bottom: 30px;
+  animation: fgRise .7s ease both;
 }
 .fh__eyebrow::before {
   content: "";
@@ -85,6 +86,7 @@ body {
   font-weight: 900;
   letter-spacing: -0.03em;
   text-wrap: balance;
+  animation: fgRise .7s ease .08s both;
 }
 .fh__molten {
   background: linear-gradient(100deg, var(--ember2) 0%, var(--molten) 45%, var(--ember1) 100%);
@@ -93,14 +95,16 @@ body {
   color: transparent;
   display: block;
 }
-/* /3 (Manifest) — headline gradient ends in the Secret logo red */
+/* /3 (Manifest) — headline gradient ends in the Secret logo red + shimmers */
 .fh--secret .fh__molten {
   background: linear-gradient(100deg, var(--ember2) 0%, var(--molten) 40%, #fb2011 70%);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   /* room so descenders (y) aren't clipped by the tight line-height */
   line-height: 1.04;
   padding-bottom: 0.08em;
+  animation: moltenShimmer 7s ease-in-out infinite;
 }
 /* /3 — same Secret-red gradient on the CTA button */
 .fh--secret .fh__btn {
@@ -126,6 +130,7 @@ body {
   font-size: 17.5px;
   line-height: 1.55;
   font-weight: 400;
+  animation: fgRise .7s ease .16s both;
 }
 .fh__sub b {
   color: var(--cast);
@@ -136,6 +141,7 @@ body {
   align-items: center;
   gap: 16px;
   margin-top: 38px;
+  animation: fgRise .7s ease .24s both;
 }
 .fh__btn {
   font-family: inherit;
@@ -180,6 +186,7 @@ body {
   margin-top: 52px;
   padding-top: 26px;
   border-top: 1px solid var(--bronze);
+  animation: fgRise .7s ease .32s both;
 }
 .fh__spec .fh__n {
   font-family: var(--font-mono), monospace;
@@ -212,6 +219,7 @@ body {
   display: grid;
   place-items: center;
   position: relative;
+  animation: fgRise .8s ease .2s both;
 }
 .man__side::after {
   content: "";
@@ -264,6 +272,7 @@ body {
   border-radius: 50%;
   background: var(--ember1);
   box-shadow: 0 0 10px var(--ember1);
+  animation: emberDot 2.4s ease-in-out infinite;
 }
 .man__body {
   padding: 20px 20px 28px;
@@ -290,17 +299,32 @@ body {
   animation: man-cycle-in 0.42s ease;
 }
 @keyframes man-cycle-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fgRise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes moltenShimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes emberDot {
+  0%, 100% { opacity: 1;    box-shadow: 0 0 6px rgba(242, 96, 12, 0.9); }
+  50%       { opacity: 0.55; box-shadow: 0 0 14px rgba(242, 96, 12, 0.4); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .man__cycle {
+  .man__cycle,
+  .fh__eyebrow,
+  .fh__h1,
+  .fh__sub,
+  .fh__actions,
+  .fh__specs,
+  .man__side,
+  .man__head .d,
+  .fh--secret .fh__molten {
     animation: none;
   }
 }

@@ -130,7 +130,7 @@ export default function FoundryDeploy() {
   return (
     <section className="fg fgdeploy">
       <div className="fg__wrap">
-        <div className="fg__head">
+        <div className="fg__head" data-reveal>
           <span className="fg__eyebrow">What you can deploy</span>
           <h2 className="fg__h2">
             Pick a runtime and a model. <span className="fg__molten">Watch it seal.</span>
@@ -184,7 +184,7 @@ export default function FoundryDeploy() {
               </Link>
               <span className="fgdeploy__hint">
                 {ready
-                  ? "We'll open the wizard with this combination pre-selected."
+                  ? "Manifest ready — sign in to seal it."
                   : "Select a runtime and a model to continue."}
               </span>
             </div>

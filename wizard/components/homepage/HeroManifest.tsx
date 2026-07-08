@@ -3,22 +3,21 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import EmberCanvas from "@/components/homepage/foundry/EmberCanvas";
 
 // The sealed card cycles through the runtimes and models you could forge.
-const RUNTIMES = ["OpenClaw", "Hermes"];
+const RUNTIMES = ["Hermes", "OpenClaw"];
 const MODELS = [
-  "Claude · BYO key",
   "ChatGPT · BYO key",
-  "SecretAI gpt-oss",
-  "SecretAI Gemma",
+  "SecretAI · in-enclave",
+  "Claude · BYO key",
+  "SecretAI · in-enclave",
 ];
 const TOOLS = [
-  "Gmail",
   "Telegram · Slack",
-  "Discord",
-  "Notion · GitHub",
-  "Calendar · Drive",
-  "WhatsApp",
+  "Gmail · Calendar",
+  "GitHub · Linear",
+  "Gmail · Drive",
 ];
 
 // Deterministic per-tick hex (seeded by tick so SSR and first client render
@@ -38,7 +37,7 @@ export default function HeroManifest() {
   // Advance one step every 2.4s; runtime and model swap together on each tick.
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 2400);
+    const id = setInterval(() => setTick((t) => t + 1), 2600);
     return () => clearInterval(id);
   }, []);
   const runtime = RUNTIMES[tick % RUNTIMES.length];
@@ -48,6 +47,7 @@ export default function HeroManifest() {
 
   return (
     <section className="fh fh--secret">
+      <EmberCanvas />
       <div className="fh__wrap">
         <div className="fh__grid">
           {/* Left — identical Foundry copy */}

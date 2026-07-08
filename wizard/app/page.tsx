@@ -5,6 +5,7 @@ import FoundryWhy from "@/components/homepage/foundry/FoundryWhy";
 import FoundryHow from "@/components/homepage/foundry/FoundryHow";
 import FoundryDeploy from "@/components/homepage/foundry/FoundryDeploy";
 import FoundryFooter from "@/components/homepage/foundry/FoundryFooter";
+import RevealInit from "@/components/homepage/foundry/RevealInit";
 
 export const metadata: Metadata = {
   icons: {
@@ -16,6 +17,7 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <div className="fg-page">
+      <RevealInit />
       <FoundryNav />
       <main>
         <HeroManifest />

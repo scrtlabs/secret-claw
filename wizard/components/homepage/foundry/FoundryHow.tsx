@@ -23,14 +23,14 @@ export default function FoundryHow() {
   return (
     <section id="how-it-works" className="fg fghow">
       <div className="fg__wrap">
-        <div className="fg__head">
+        <div className="fg__head" data-reveal>
           <span className="fg__eyebrow">The forge process</span>
           <h2 className="fg__h2">Three steps to a sealed agent.</h2>
         </div>
 
         <ol className="fghow__steps">
           {STEPS.map((step) => (
-            <li key={step.num} className="fgstep">
+            <li key={step.num} className="fgstep" data-reveal>
               <span className="fgstep__num">{step.num}</span>
               <span className="fgstep__node" />
               <h3 className="fgstep__t">{step.title}</h3>

@@ -50,7 +50,7 @@ export default function FoundryWhy() {
   return (
     <section className="fg fgwhy">
       <div className="fg__wrap">
-        <div className="fg__head">
+        <div className="fg__head" data-reveal>
           <span className="fg__eyebrow">Why SecretForge</span>
           <h2 className="fg__h2">
             Your agent. <span className="fg__molten">Your rules.</span>
@@ -59,7 +59,7 @@ export default function FoundryWhy() {
 
         <div className="fgwhy__grid">
           {CARDS.map((card) => (
-            <article key={card.heading} className="fgcard">
+            <article key={card.heading} className="fgcard" data-reveal>
               <span className="fgcard__kicker">{card.kicker}</span>
               {card.icon}
               <h3 className="fgcard__h">{card.heading}</h3>
