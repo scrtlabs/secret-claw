@@ -4,12 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { SECRETAI_KEY_STORAGE_KEY } from "@/components/ui/GoogleSignInButton";
-
-import { PortalHeader } from "@/components/PortalHeader";
-import { SelectionCard } from "@/components/SelectionCard";
-import { FormInput } from "@/components/FormInput";
-import { PrimaryButton } from "@/components/PrimaryButton";
+import FoundryNav from "@/components/homepage/foundry/FoundryNav";
 import { StatusPill, type StatusKind } from "@/components/StatusPill";
+import { SECRETAI_MODELS, DEFAULT_SECRETAI_MODEL } from "@/lib/types";
 
 type ValidationState = {
   kind: StatusKind;
@@ -18,8 +15,6 @@ type ValidationState = {
   vmCount?: number;
   botUsername?: string;
 };
-
-import { SECRETAI_MODELS, DEFAULT_SECRETAI_MODEL } from "@/lib/types";
 
 type TelegramChoice = "enabled" | "skipped" | null;
 type Tier = "byo" | "secret";
@@ -36,24 +31,31 @@ interface SectionShellProps {
 }
 
 function SectionShell({ id, index, title, helper, status, invalid, children }: SectionShellProps) {
-  const borderClass = invalid
-    ? "border-portal-red ring-1 ring-portal-red/50"
-    : "border-portal-border";
   return (
     <section
       id={id}
-      className={`scroll-mt-20 rounded-xl border bg-portal-surface p-6 transition-colors ${borderClass}`}
+      style={{ background: "linear-gradient(180deg, #1a1613, #141110)" }}
+      className={`scroll-mt-20 rounded-[14px] border p-6 transition-colors ${
+        invalid
+          ? "border-[var(--ember1)] ring-1 ring-[var(--ember1)]/40"
+          : "border-[var(--bronze)]"
+      }`}
     >
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-portal-surface2 text-xs font-semibold text-portal-muted">
+          <span
+            className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold"
+            style={{ background: "var(--forge2)", color: "var(--cast-dim)", fontFamily: "var(--font-mono)" }}
+          >
             {index}
           </span>
-          <h2 className="text-base font-semibold text-portal-text">{title}</h2>
+          <h2 className="text-base font-semibold" style={{ color: "var(--cast)" }}>{title}</h2>
         </div>
         {status ? <StatusPill kind={status.kind} label={status.message} /> : null}
       </div>
-      {helper ? <p className="mb-4 text-xs leading-relaxed text-portal-muted">{helper}</p> : null}
+      {helper ? (
+        <p className="mb-4 text-xs leading-relaxed" style={{ color: "var(--cast-dim)" }}>{helper}</p>
+      ) : null}
       {children}
       {status?.detail ? <ErrorDetail detail={status.detail} /> : null}
     </section>
@@ -63,20 +65,65 @@ function SectionShell({ id, index, title, helper, status, invalid, children }: S
 function ErrorDetail({ detail }: { detail: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mt-3 text-xs text-portal-red">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="underline-offset-2 hover:underline"
-      >
+    <div className="mt-3 text-xs text-red-400">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="underline-offset-2 hover:underline">
         Why?
       </button>
       {open ? (
-        <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded border border-portal-red/40 bg-portal-bg p-2 font-mono text-[11px] text-portal-muted">
+        <pre
+          className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded border p-2 font-mono text-[11px]"
+          style={{ borderColor: "var(--ember1)", background: "var(--iron)", color: "var(--cast-dim)" }}
+        >
           {detail}
         </pre>
       ) : null}
     </div>
+  );
+}
+
+function ForgeInput({
+  invalid,
+  className,
+  ...rest
+}: React.InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) {
+  return (
+    <input
+      spellCheck={false}
+      autoComplete="off"
+      autoCorrect="off"
+      style={{ background: "var(--iron)", color: "var(--cast)" }}
+      className={`block w-full rounded-md border px-3 py-2 text-sm font-mono placeholder:text-[var(--cast-dimmer)] focus:outline-none focus:ring-1 ${
+        invalid
+          ? "border-[var(--ember1)] ring-[var(--ember1)]/40"
+          : "border-[var(--bronze)] focus:border-[var(--molten)] focus:ring-[var(--molten)]/30"
+      } ${className || ""}`}
+      {...rest}
+    />
+  );
+}
+
+function ForgeOption({
+  title,
+  tag,
+  description,
+  selected,
+  onClick,
+}: {
+  title: string;
+  tag?: string;
+  description: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" className="fgopt" aria-pressed={selected} onClick={onClick}>
+      <div className="fgopt__top">
+        <span className="fgopt__name">{title}</span>
+        {tag ? <span className="fgopt__tag">{tag}</span> : null}
+      </div>
+      <p className="fgopt__body">{description}</p>
+      <span className="fgopt__check">✓</span>
+    </button>
   );
 }
 
@@ -103,13 +150,6 @@ export default function CreateAgentPage() {
 
   const formRef = useRef<HTMLFormElement>(null);
 
-  // On mount: (1) pre-populate the SecretAI key if the homepage Google sign-in
-  // stub stashed one in sessionStorage (cleared after read so it doesn't linger
-  // across the tab's lifetime — replaced by proper session management in Track
-  // A); (2) pre-select runtime/tier from the homepage "What you can deploy"
-  // cards, which carry the choice in the redirect URL (?runtime=…&tier=…). Read
-  // from window.location.search rather than useSearchParams to avoid forcing a
-  // Suspense boundary on this client page.
   useEffect(() => {
     try {
       const stashed = sessionStorage.getItem(SECRETAI_KEY_STORAGE_KEY);
@@ -132,9 +172,6 @@ export default function CreateAgentPage() {
   }, []);
 
   const secretaiValid = secretaiState.kind === "valid";
-  // Anthropic key is only required for the BYO tier. Secret tier uses the
-  // SecretAI key for inference (same key, two roles: vm/create auth + OpenClaw
-  // provider apiKey).
   const anthropicValid = tier === "secret" ? true : anthropicState.kind === "valid";
   const telegramValid =
     telegramChoice === "skipped" || (telegramChoice === "enabled" && telegramState.kind === "valid");
@@ -146,12 +183,6 @@ export default function CreateAgentPage() {
     return null;
   }
 
-  // Each validator returns the final ValidationState it settled on (in
-  // addition to setting it on React state for the UI). The submit handler
-  // uses these return values directly so it doesn't race with React's
-  // async state-flush — a previous bug where the first Create click
-  // silently exited because state was still `idle` / `validating` while
-  // the per-field blur was firing in parallel.
   async function validateSecretai(): Promise<ValidationState> {
     const trimmed = secretaiKey.trim();
     if (!trimmed) {
@@ -167,12 +198,7 @@ export default function CreateAgentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ apiKey: trimmed }),
       });
-      const body = (await res.json()) as {
-        valid: boolean;
-        vmCount?: number;
-        error?: string;
-        status?: number;
-      };
+      const body = (await res.json()) as { valid: boolean; vmCount?: number; error?: string; status?: number };
       if (body.valid) {
         result = {
           kind: "valid",
@@ -190,11 +216,7 @@ export default function CreateAgentPage() {
         };
       }
     } catch (err) {
-      result = {
-        kind: "invalid",
-        message: "Network error",
-        detail: err instanceof Error ? err.message : String(err),
-      };
+      result = { kind: "invalid", message: "Network error", detail: err instanceof Error ? err.message : String(err) };
     }
     setSecretaiState(result);
     return result;
@@ -215,12 +237,7 @@ export default function CreateAgentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ apiKey: trimmed }),
       });
-      const body = (await res.json()) as {
-        valid: boolean;
-        error?: string;
-        detail?: string;
-        status?: number;
-      };
+      const body = (await res.json()) as { valid: boolean; error?: string; detail?: string; status?: number };
       if (body.valid) {
         result = { kind: "valid", message: "Valid" };
       } else {
@@ -231,11 +248,7 @@ export default function CreateAgentPage() {
         };
       }
     } catch (err) {
-      result = {
-        kind: "invalid",
-        message: "Network error",
-        detail: err instanceof Error ? err.message : String(err),
-      };
+      result = { kind: "invalid", message: "Network error", detail: err instanceof Error ? err.message : String(err) };
     }
     setAnthropicState(result);
     return result;
@@ -266,12 +279,7 @@ export default function CreateAgentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ botToken: tokenT, chatId: chatT }),
       });
-      const body = (await res.json()) as {
-        valid: boolean;
-        error?: string;
-        botUsername?: string;
-        status?: number;
-      };
+      const body = (await res.json()) as { valid: boolean; error?: string; botUsername?: string; status?: number };
       if (body.valid) {
         setBotUsername(body.botUsername);
         result = {
@@ -287,11 +295,7 @@ export default function CreateAgentPage() {
         };
       }
     } catch (err) {
-      result = {
-        kind: "invalid",
-        message: "Network error",
-        detail: err instanceof Error ? err.message : String(err),
-      };
+      result = { kind: "invalid", message: "Network error", detail: err instanceof Error ? err.message : String(err) };
     }
     setTelegramState(result);
     return result;
@@ -302,12 +306,6 @@ export default function CreateAgentPage() {
     setShowInvalidHighlights(true);
     setSubmitting(true);
 
-    // Run-or-re-run all relevant validations and AWAIT their return values
-    // before deciding whether to submit. Reading React state here would
-    // race with the field-blur validation that fires when focus shifts to
-    // the Create button — the first click would silently exit because
-    // state was still `idle`/`validating`. Using direct return values
-    // dodges the race entirely.
     const secretaiResult = await validateSecretai();
     const anthropicResult: ValidationState =
       tier === "byo" ? await validateAnthropic() : { kind: "valid" };
@@ -318,7 +316,6 @@ export default function CreateAgentPage() {
     } else if (telegramChoice === "skipped") {
       telegramResult = { kind: "valid" };
     } else {
-      // null — user hasn't picked Enable or Skip yet
       telegramResult = {
         kind: "invalid",
         message: "Choose Enable or Skip",
@@ -327,11 +324,9 @@ export default function CreateAgentPage() {
       setTelegramState(telegramResult);
     }
 
-    // Determine first invalid section (top-down, matching form order).
     let target: string | null = null;
     if (secretaiResult.kind !== "valid") target = "section-secretai";
-    else if (tier === "byo" && anthropicResult.kind !== "valid")
-      target = "section-anthropic";
+    else if (tier === "byo" && anthropicResult.kind !== "valid") target = "section-anthropic";
     else if (telegramResult.kind !== "valid") target = "section-telegram";
 
     if (target) {
@@ -364,22 +359,10 @@ export default function CreateAgentPage() {
         return;
       }
       const body = (await res.json()) as { deployment_id: string };
-      // Stash the SecretAI key in sessionStorage so the detail page can
-      // send it on each /api/deployment-status poll as a Bearer token
-      // — the portal job-status endpoint needs the key to report
-      // provisioning completion. Scoped to the tab; lost on close,
-      // which is fine because the VM should be provisioned within
-      // minutes. Not stored server-side (KV) to avoid keeping a
-      // long-lived copy of the user's key on Vercel's infra.
       try {
-        sessionStorage.setItem(
-          `secret-claw:apikey:${body.deployment_id}`,
-          secretaiKey.trim(),
-        );
+        sessionStorage.setItem(`secret-claw:apikey:${body.deployment_id}`, secretaiKey.trim());
       } catch {
-        // sessionStorage can be blocked in private windows. Polling will
-        // still work but won't update the provisioning state until the
-        // user refreshes the page after manually checking the VM.
+        // sessionStorage can be blocked in private windows.
       }
       router.push(`/agents/${body.deployment_id}`);
     } catch (err) {
@@ -389,15 +372,19 @@ export default function CreateAgentPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <PortalHeader pageTitle="Create new agent" />
+    <div className="fg-page">
+      <FoundryNav />
 
       <main className="mx-auto max-w-3xl px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-portal-text">
-            Create a new agent
+          <span className="fh__eyebrow">New deployment</span>
+          <h1
+            className="mt-1 text-2xl font-semibold tracking-tight"
+            style={{ color: "var(--cast)", fontFamily: "var(--font-archivo)" }}
+          >
+            Forge your agent
           </h1>
-          <p className="mt-1 text-sm text-portal-muted">
+          <p className="mt-2 text-sm" style={{ color: "var(--cast-dim)" }}>
             Deploy your own private AI agent on SecretVM. Runs in attested confidential compute.
           </p>
         </div>
@@ -405,39 +392,40 @@ export default function CreateAgentPage() {
         <form
           ref={formRef}
           className="flex flex-col gap-6"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void onSubmit();
-          }}
+          onSubmit={(e) => { e.preventDefault(); void onSubmit(); }}
         >
           <SectionShell id="section-tier" index={1} title="Runtime &amp; Tier">
-            <p className="mb-3 text-[11px] leading-relaxed text-portal-muted">
+            <p className="mb-3 text-[11px] leading-relaxed" style={{ color: "var(--cast-dim)" }}>
               Pick a runtime (OpenClaw or Hermes Agent) and an inference tier
               (BYO Anthropic key or hosted SecretAI). All four combinations
               ship the same defaults — Telegram, three pre-installed routines,
               workspace files, HTTPS.
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectionCard
+              <ForgeOption
                 title="OpenClaw + BYO API"
+                tag="Autonomous"
                 description="OpenClaw runtime, Claude Sonnet 4.6 inference (your Anthropic key)."
                 selected={runtime === "openclaw" && tier === "byo"}
                 onClick={() => { setRuntime("openclaw"); setTier("byo"); }}
               />
-              <SelectionCard
+              <ForgeOption
                 title="OpenClaw + Secret"
+                tag="In-enclave"
                 description="OpenClaw runtime, SecretAI rytn / gemma4:31b inference (your SecretAI key)."
                 selected={runtime === "openclaw" && tier === "secret"}
                 onClick={() => { setRuntime("openclaw"); setTier("secret"); }}
               />
-              <SelectionCard
+              <ForgeOption
                 title="Hermes + BYO API"
+                tag="Lean"
                 description="Hermes Agent v0.14 runtime, Claude Sonnet 4.6 inference (your Anthropic key)."
                 selected={runtime === "hermes" && tier === "byo"}
                 onClick={() => { setRuntime("hermes"); setTier("byo"); }}
               />
-              <SelectionCard
+              <ForgeOption
                 title="Hermes + Secret"
+                tag="Lean · In-enclave"
                 description="Hermes Agent v0.14 runtime, SecretAI rytn / gemma4:31b inference (your SecretAI key)."
                 selected={runtime === "hermes" && tier === "secret"}
                 onClick={() => { setRuntime("hermes"); setTier("secret"); }}
@@ -453,9 +441,8 @@ export default function CreateAgentPage() {
             status={secretaiState.kind === "idle" ? undefined : secretaiState}
             invalid={showInvalidHighlights && !secretaiValid}
           >
-            <FormInput
+            <ForgeInput
               type="text"
-              monospace
               placeholder="sk-..."
               value={secretaiKey}
               onChange={(e) => {
@@ -465,12 +452,13 @@ export default function CreateAgentPage() {
               onBlur={() => void validateSecretai()}
               invalid={secretaiState.kind === "invalid"}
             />
-            <p className="mt-2 text-[11px] text-portal-muted">
+            <p className="mt-2 text-[11px]" style={{ color: "var(--cast-dim)" }}>
               <a
                 href="https://secretai.scrtlabs.com"
                 target="_blank"
                 rel="noreferrer"
-                className="text-portal-accent hover:underline"
+                className="hover:underline"
+                style={{ color: "var(--ember2)" }}
               >
                 Generate a key in the SecretAI portal →
               </a>
@@ -486,9 +474,8 @@ export default function CreateAgentPage() {
               status={anthropicState.kind === "idle" ? undefined : anthropicState}
               invalid={showInvalidHighlights && !anthropicValid}
             >
-              <FormInput
+              <ForgeInput
                 type="text"
-                monospace
                 placeholder="sk-ant-..."
                 value={anthropicKey}
                 onChange={(e) => {
@@ -498,12 +485,13 @@ export default function CreateAgentPage() {
                 onBlur={() => void validateAnthropic()}
                 invalid={anthropicState.kind === "invalid"}
               />
-              <p className="mt-2 text-[11px] text-portal-muted">
+              <p className="mt-2 text-[11px]" style={{ color: "var(--cast-dim)" }}>
                 <a
                   href="https://console.anthropic.com/settings/keys"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-portal-accent hover:underline"
+                  className="hover:underline"
+                  style={{ color: "var(--ember2)" }}
                 >
                   Get an Anthropic API key →
                 </a>
@@ -517,22 +505,29 @@ export default function CreateAgentPage() {
               helper="Secret tier runs inference on SecretAI's attested rytn endpoint. Uses the same SecretAI key from Section 2; no separate API key needed. Pick a model — gemma4:31b is the verified default; the others are experimental (tool-call quirks possible)."
             >
               <div className="flex flex-col gap-2">
-                <span className="text-[11px] uppercase tracking-wider text-portal-muted">
+                <span
+                  className="text-[11px] uppercase tracking-wider"
+                  style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+                >
                   Model
                 </span>
                 <select
                   value={secretaiModel}
                   onChange={(e) => setSecretaiModel(e.target.value)}
-                  className="rounded-md border border-portal-border bg-portal-bg px-3 py-2 font-mono text-xs text-portal-text focus:border-portal-accent focus:outline-none"
+                  className="rounded-md border px-3 py-2 font-mono text-xs focus:outline-none focus:ring-1"
+                  style={{
+                    borderColor: "var(--bronze)",
+                    background: "var(--iron)",
+                    color: "var(--cast)",
+                  }}
                 >
                   {SECRETAI_MODELS.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.label}
-                    </option>
+                    <option key={m.id} value={m.id}>{m.label}</option>
                   ))}
                 </select>
-                <p className="text-[11px] leading-relaxed text-portal-mutedDim">
-                  Endpoint: <span className="font-mono text-portal-muted">secretai-rytn</span>
+                <p className="text-[11px] leading-relaxed" style={{ color: "var(--cast-dimmer)" }}>
+                  Endpoint:{" "}
+                  <span className="font-mono" style={{ color: "var(--cast-dim)" }}>secretai-rytn</span>
                   {" · "}256K context · attested compute
                 </p>
               </div>
@@ -554,7 +549,7 @@ export default function CreateAgentPage() {
             invalid={showInvalidHighlights && !telegramValid}
           >
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectionCard
+              <ForgeOption
                 title="Enable Telegram"
                 description="Paste a bot token from @BotFather and your chat ID."
                 selected={telegramChoice === "enabled"}
@@ -563,8 +558,8 @@ export default function CreateAgentPage() {
                   if (telegramChoice !== "enabled") setTelegramState({ kind: "idle" });
                 }}
               />
-              <SelectionCard
-                title="Skip — I'll add this later"
+              <ForgeOption
+                title="Skip — add later"
                 description="Your agent will be reachable through its web URL only."
                 selected={telegramChoice === "skipped"}
                 onClick={() => {
@@ -577,27 +572,30 @@ export default function CreateAgentPage() {
             {telegramChoice === "enabled" ? (
               <div className="mt-4 grid grid-cols-1 gap-5">
                 <div className="flex flex-col gap-2">
-                  <span className="text-[11px] uppercase tracking-wider text-portal-muted">
+                  <span
+                    className="text-[11px] uppercase tracking-wider"
+                    style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+                  >
                     Step 1 — Bot token
                   </span>
-                  <p className="text-[11px] leading-relaxed text-portal-muted">
+                  <p className="text-[11px] leading-relaxed" style={{ color: "var(--cast-dim)" }}>
                     Message{" "}
                     <a
                       href="https://t.me/BotFather"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-portal-accent hover:underline"
+                      className="hover:underline"
+                      style={{ color: "var(--ember2)" }}
                     >
                       @BotFather
                     </a>{" "}
                     on Telegram, send{" "}
-                    <code className="font-mono text-portal-text">/newbot</code>, follow the
-                    prompts. BotFather replies with a token like{" "}
-                    <code className="font-mono text-portal-text">1234567890:ABC-def…</code>.
+                    <code className="font-mono" style={{ color: "var(--cast)" }}>/newbot</code>, follow the prompts.
+                    BotFather replies with a token like{" "}
+                    <code className="font-mono" style={{ color: "var(--cast)" }}>1234567890:ABC-def…</code>.
                   </p>
-                  <FormInput
+                  <ForgeInput
                     type="text"
-                    monospace
                     placeholder="0000000000:..."
                     value={botToken}
                     onChange={(e) => {
@@ -610,32 +608,42 @@ export default function CreateAgentPage() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-[11px] uppercase tracking-wider text-portal-muted">
+                  <span
+                    className="text-[11px] uppercase tracking-wider"
+                    style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+                  >
                     Step 2 — Chat ID
                   </span>
-                  <p className="text-[11px] leading-relaxed text-portal-muted">
+                  <p className="text-[11px] leading-relaxed" style={{ color: "var(--cast-dim)" }}>
                     Open Telegram, find your new bot, send it any message
-                    (e.g. <code className="font-mono text-portal-text">/start</code>), then open
-                    this URL in a new tab and look for{" "}
-                    <code className="font-mono text-portal-text">chat.id</code> in the JSON:
+                    (e.g. <code className="font-mono" style={{ color: "var(--cast)" }}>/start</code>), then open
+                    this URL and look for{" "}
+                    <code className="font-mono" style={{ color: "var(--cast)" }}>chat.id</code> in the JSON:
                   </p>
                   {botToken.trim().includes(":") ? (
                     <a
                       href={`https://api.telegram.org/bot${encodeURIComponent(botToken.trim())}/getUpdates`}
                       target="_blank"
                       rel="noreferrer"
-                      className="block break-all rounded-md border border-portal-border bg-portal-bg px-3 py-2 font-mono text-[11px] text-portal-accent transition-colors hover:border-portal-accent hover:underline"
+                      className="block break-all rounded-md border px-3 py-2 font-mono text-[11px] transition-colors hover:underline"
+                      style={{
+                        borderColor: "var(--bronze)",
+                        background: "var(--iron)",
+                        color: "var(--ember2)",
+                      }}
                     >
                       https://api.telegram.org/bot{botToken.trim()}/getUpdates ↗
                     </a>
                   ) : (
-                    <span className="block rounded-md border border-dashed border-portal-border bg-portal-bg px-3 py-2 font-mono text-[11px] text-portal-mutedDim">
+                    <span
+                      className="block rounded-md border border-dashed px-3 py-2 font-mono text-[11px]"
+                      style={{ borderColor: "var(--bronze)", background: "var(--iron)", color: "var(--cast-dimmer)" }}
+                    >
                       Paste your bot token above to generate this link
                     </span>
                   )}
-                  <FormInput
+                  <ForgeInput
                     type="text"
-                    monospace
                     placeholder="-1001234567890 or 1234567890"
                     value={chatId}
                     onChange={(e) => {
@@ -650,21 +658,26 @@ export default function CreateAgentPage() {
             ) : null}
           </SectionShell>
 
-          <SectionShell id="section-submit" index={5} title="Create your agent">
+          <SectionShell id="section-submit" index={5} title="Forge your agent">
             <div className="flex flex-col gap-3">
               {submitError ? (
-                <p className="text-xs text-portal-red">{submitError}</p>
+                <p className="text-xs text-red-400">{submitError}</p>
               ) : null}
-              <PrimaryButton
+              <button
                 type="submit"
-                loading={submitting}
+                disabled={submitting}
+                className={`fgbtn self-start ${submitting ? "fgbtn--idle" : ""}`}
                 onClick={() => void onSubmit()}
-                className="self-start"
               >
-                {submitting ? "Creating…" : "Create"}
-              </PrimaryButton>
+                {submitting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Forging…
+                  </span>
+                ) : "Forge agent →"}
+              </button>
               {showInvalidHighlights && firstInvalidId() ? (
-                <p className="text-xs text-portal-amber">
+                <p className="text-xs" style={{ color: "var(--ember2)" }}>
                   Some sections still need attention — we've scrolled to the first one.
                 </p>
               ) : null}
