@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+    ],
+  },
   // Standalone output produces a self-contained server bundle at
   // .next/standalone/server.js for the Dockerfile to copy. Vercel does
   // its own serverless packaging — forcing standalone there confuses its

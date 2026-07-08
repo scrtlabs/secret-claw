@@ -2,13 +2,14 @@
 
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface NavAuthButtonsProps {
   size?: "sm" | "lg";
 }
 
 export function NavAuthButtons({ size = "sm" }: NavAuthButtonsProps) {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
 
   const base =
     size === "sm"
@@ -20,8 +21,28 @@ export function NavAuthButtons({ size = "sm" }: NavAuthButtonsProps) {
   }
 
   if (status === "authenticated") {
+    const avatar = session?.user?.image;
+    const name = session?.user?.name ?? session?.user?.email ?? "User";
+    const initials = name.charAt(0).toUpperCase();
+
     return (
       <div className="flex items-center gap-2">
+        {avatar ? (
+          <Image
+            src={avatar}
+            alt={name}
+            width={28}
+            height={28}
+            className="rounded-full border border-[var(--bronze)]"
+          />
+        ) : (
+          <div
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--bronze)] text-xs font-bold"
+            style={{ background: "var(--forge)", color: "var(--cast)" }}
+          >
+            {initials}
+          </div>
+        )}
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/" })}
