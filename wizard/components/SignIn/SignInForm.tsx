@@ -179,10 +179,11 @@ export function SignInForm() {
         type="button"
         onClick={openGooglePopup}
         disabled={googlePending}
-        className="flex w-full items-center justify-center gap-3 rounded-md border border-[var(--bronze)]/50 bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] shadow-sm transition-colors hover:bg-[#F5F5F5] disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-3 rounded-md border border-[var(--bronze)] px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--bronze)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+        style={{ background: "var(--iron)", color: "var(--cast)" }}
       >
         {googlePending ? (
-          <Spinner className="h-5 w-5 text-[#1F1F1F]/40" />
+          <Spinner className="h-5 w-5 text-[var(--cast-dim)]" />
         ) : (
           <GoogleGlyph className="h-5 w-5" />
         )}
