@@ -124,9 +124,7 @@ export default function FoundryDeploy() {
     ? ready
       ? "Deploy →"
       : "Select options above"
-    : ready
-      ? "Sign in & deploy →"
-      : "Sign in with Google";
+    : "Sign in & deploy →";
 
   return (
     <section className="fg fgdeploy">
@@ -183,11 +181,6 @@ export default function FoundryDeploy() {
               >
                 {cta}
               </Link>
-              <span className="fgdeploy__hint">
-                {ready
-                  ? "Manifest ready — sign in to seal it."
-                  : "Select a runtime and a model to continue."}
-              </span>
             </div>
           </div>
 
@@ -223,7 +216,7 @@ export default function FoundryDeploy() {
               {/* stamp — circular badge with animation inside */}
               <div className={`man__stamp ${ready ? "man__stamp--live" : "man__stamp--pending"}`}>
                 {/* animation clipped to circle */}
-                <div style={{ position: "absolute", inset: 14, borderRadius: "50%", overflow: "hidden" }}>
+                <div style={{ position: "absolute", inset: 14, borderRadius: "50%", overflow: "hidden", background: "linear-gradient(180deg, #1a1613, #0f0c0a)" }}>
                   <ForgeAnimation style={{ width: "100%", height: "100%" }} />
                 </div>
                 {/* circle border + curved text overlay */}

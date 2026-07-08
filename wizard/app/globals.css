@@ -244,17 +244,6 @@ body {
   font-family: var(--font-mono), monospace;
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
 }
-.man__card::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 3px;
-  border-radius: 0 0 14px 14px;
-  background: linear-gradient(90deg, var(--ember1), var(--ember2), var(--ember1));
-  box-shadow: 0 0 18px rgba(242, 96, 12, 0.7);
-}
 .man__head {
   display: flex;
   align-items: center;
@@ -275,10 +264,23 @@ body {
   animation: emberDot 2.4s ease-in-out infinite;
 }
 .man__body {
+  position: relative;
   padding: 20px 20px 28px;
   font-size: 13px;
   line-height: 2.05;
   color: var(--cast-dim);
+  border-radius: 0 0 14px 14px;
+  overflow: hidden;
+}
+.man__body::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ember1), var(--ember2), var(--ember1));
+  box-shadow: 0 0 18px rgba(242, 96, 12, 0.7);
 }
 .man__row {
   display: flex;
