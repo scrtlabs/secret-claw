@@ -45,9 +45,9 @@ export function ForgotPasswordForm() {
     return (
       <div className="text-center">
         <div className="mb-4 text-3xl">📬</div>
-        <p className="mb-1 text-sm text-portal-text/50">If an account exists for</p>
-        <p className="mb-4 text-sm font-medium text-portal-text">{email}</p>
-        <p className="text-sm text-portal-text/50">
+        <p className="mb-1 text-sm text-[var(--cast-dim)]">If an account exists for</p>
+        <p className="mb-4 text-sm font-medium" style={{ color: "var(--cast)" }}>{email}</p>
+        <p className="text-sm text-[var(--cast-dim)]">
           you&apos;ll receive a password reset link shortly. Check your spam folder if it
           doesn&apos;t arrive.
         </p>
@@ -65,7 +65,8 @@ export function ForgotPasswordForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
           disabled={loading}
-          className="w-full rounded-md border border-portal-border bg-portal-surface px-4 py-2.5 text-sm text-portal-text placeholder-portal-text/40 focus:outline-none focus:ring-1 focus:ring-portal-border disabled:opacity-50"
+          className="w-full rounded-md border border-[var(--bronze)] px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-1 focus:border-[var(--molten)] focus:ring-[var(--molten)]/30 placeholder:text-[var(--cast-dimmer)] disabled:opacity-50"
+          style={{ background: "var(--iron)", color: "var(--cast)" }}
         />
         {fieldError && <p className="text-xs text-red-400">{fieldError}</p>}
       </div>
@@ -75,7 +76,7 @@ export function ForgotPasswordForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-md bg-portal-text py-2.5 text-sm font-semibold text-portal-bg transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="fgbtn w-full disabled:opacity-50"
       >
         {loading ? "Sending…" : "Send reset link"}
       </button>

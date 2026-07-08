@@ -6,14 +6,17 @@ export const metadata = { title: "SecretForge — Reset password" };
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-portal-bg px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-portal-border bg-portal-surface p-8 shadow-xl">
+    <div className="fg-page flex min-h-screen items-center justify-center px-4">
+      <div
+        className="w-full max-w-sm rounded-2xl border border-[var(--bronze)] p-8 shadow-xl"
+        style={{ background: "linear-gradient(180deg, #1a1613, #141110)" }}
+      >
         <div className="mb-6">
           <BackButton />
         </div>
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-portal-text">Reset password</h1>
-          <p className="mt-1 text-sm text-portal-text/50">Enter your new password below</p>
+          <h1 className="text-2xl font-bold" style={{ color: "var(--cast)" }}>Reset password</h1>
+          <p className="mt-1 text-sm text-[var(--cast-dim)]">Enter your new password below</p>
         </div>
 
         <Suspense>

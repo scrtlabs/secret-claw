@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 
 type FieldErrors = Partial<Record<"email" | "password" | "confirmPassword", string[]>>;
 
+const forgeInput =
+  "w-full rounded-md border border-[var(--bronze)] px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-1 focus:border-[var(--molten)] focus:ring-[var(--molten)]/30 placeholder:text-[var(--cast-dimmer)] disabled:opacity-50";
+
 export function SignUpForm() {
   const router = useRouter();
 
@@ -60,7 +63,8 @@ export function SignUpForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
           disabled={loading}
-          className="w-full rounded-md border border-portal-border bg-portal-surface px-4 py-2.5 text-sm text-portal-text placeholder-portal-text/40 focus:outline-none focus:ring-1 focus:ring-portal-border disabled:opacity-50"
+          className={forgeInput}
+          style={{ background: "var(--iron)", color: "var(--cast)" }}
         />
         {fieldErrors.email && (
           <p className="text-xs text-red-400">{fieldErrors.email[0]}</p>
@@ -77,12 +81,13 @@ export function SignUpForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={loading}
-            className="w-full rounded-md border border-portal-border bg-portal-surface px-4 py-2.5 text-sm text-portal-text placeholder-portal-text/40 focus:outline-none focus:ring-1 focus:ring-portal-border disabled:opacity-50"
+            className={forgeInput}
+            style={{ background: "var(--iron)", color: "var(--cast)" }}
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-portal-text/50 hover:text-portal-text"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--cast-dim)] hover:text-[var(--cast)]"
           >
             {showPassword ? "Hide" : "Show"}
           </button>
@@ -102,12 +107,13 @@ export function SignUpForm() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             disabled={loading}
-            className="w-full rounded-md border border-portal-border bg-portal-surface px-4 py-2.5 text-sm text-portal-text placeholder-portal-text/40 focus:outline-none focus:ring-1 focus:ring-portal-border disabled:opacity-50"
+            className={forgeInput}
+            style={{ background: "var(--iron)", color: "var(--cast)" }}
           />
           <button
             type="button"
             onClick={() => setShowConfirm((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-portal-text/50 hover:text-portal-text"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--cast-dim)] hover:text-[var(--cast)]"
           >
             {showConfirm ? "Hide" : "Show"}
           </button>
@@ -122,7 +128,7 @@ export function SignUpForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-md bg-portal-text py-2.5 text-sm font-semibold text-portal-bg transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="fgbtn w-full disabled:opacity-50"
       >
         {loading ? "Creating account…" : "Create account"}
       </button>

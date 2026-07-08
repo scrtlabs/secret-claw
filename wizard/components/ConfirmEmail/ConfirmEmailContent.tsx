@@ -57,7 +57,7 @@ export function ConfirmEmailContent() {
     return (
       <div className="text-center">
         <div className="mb-4 text-3xl">⏳</div>
-        <h1 className="text-xl font-bold text-portal-text">Confirming your email…</h1>
+        <h1 className="text-xl font-bold" style={{ color: "var(--cast)" }}>Confirming your email…</h1>
       </div>
     );
   }
@@ -66,11 +66,11 @@ export function ConfirmEmailContent() {
     return (
       <div className="text-center">
         <div className="mb-4 text-3xl">✅</div>
-        <h1 className="mb-2 text-xl font-bold text-portal-text">Email confirmed!</h1>
-        <p className="mb-6 text-sm text-portal-text/50">Your account is ready.</p>
+        <h1 className="mb-2 text-xl font-bold" style={{ color: "var(--cast)" }}>Email confirmed!</h1>
+        <p className="mb-6 text-sm text-[var(--cast-dim)]">Your account is ready.</p>
         <a
           href="/sign-in"
-          className="inline-block rounded-md bg-portal-text px-6 py-2.5 text-sm font-semibold text-portal-bg transition-opacity hover:opacity-90"
+          className="fgbtn inline-block px-6 py-2.5 text-sm"
         >
           Sign in
         </a>
@@ -82,14 +82,15 @@ export function ConfirmEmailContent() {
     return (
       <div className="text-center">
         <div className="mb-4 text-3xl">❌</div>
-        <h1 className="mb-2 text-xl font-bold text-portal-text">Confirmation failed</h1>
-        <p className="mb-6 text-sm text-portal-text/50">{errorMsg}</p>
+        <h1 className="mb-2 text-xl font-bold" style={{ color: "var(--cast)" }}>Confirmation failed</h1>
+        <p className="mb-6 text-sm text-[var(--cast-dim)]">{errorMsg}</p>
         {email && (
           <button
             type="button"
             onClick={handleResend}
             disabled={resendLoading || resendSent}
-            className="rounded-md border border-portal-border bg-portal-surface px-5 py-2 text-sm font-medium text-portal-text transition-colors hover:bg-portal-border/20 disabled:opacity-50"
+            className="rounded-md border border-[var(--bronze)] px-5 py-2 text-sm font-medium transition-colors hover:bg-[var(--bronze)]/10 disabled:opacity-50"
+            style={{ background: "var(--iron)", color: "var(--cast)" }}
           >
             {resendSent ? "Email sent!" : resendLoading ? "Sending…" : "Resend confirmation email"}
           </button>
@@ -102,14 +103,14 @@ export function ConfirmEmailContent() {
   return (
     <div className="text-center">
       <div className="mb-4 text-3xl">📬</div>
-      <h1 className="mb-2 text-xl font-bold text-portal-text">Check your email</h1>
-      <p className="mb-1 text-sm text-portal-text/50">
+      <h1 className="mb-2 text-xl font-bold" style={{ color: "var(--cast)" }}>Check your email</h1>
+      <p className="mb-1 text-sm text-[var(--cast-dim)]">
         We sent a confirmation link to
       </p>
       {email && (
-        <p className="mb-6 text-sm font-medium text-portal-text">{decodeURIComponent(email)}</p>
+        <p className="mb-6 text-sm font-medium" style={{ color: "var(--cast)" }}>{decodeURIComponent(email)}</p>
       )}
-      <p className="mb-6 text-xs text-portal-text/40">
+      <p className="mb-6 text-xs text-[var(--cast-dimmer)]">
         Click the link in the email to activate your account. It expires in 24 hours.
       </p>
       {email && !resendSent && (
@@ -117,13 +118,13 @@ export function ConfirmEmailContent() {
           type="button"
           onClick={handleResend}
           disabled={resendLoading}
-          className="text-sm text-portal-text/50 underline-offset-2 hover:text-portal-text hover:underline disabled:opacity-50"
+          className="text-sm text-[var(--ember2)] underline-offset-2 hover:underline disabled:opacity-50"
         >
           {resendLoading ? "Sending…" : "Resend email"}
         </button>
       )}
       {resendSent && (
-        <p className="text-sm text-portal-text/50">Email resent!</p>
+        <p className="text-sm text-[var(--cast-dim)]">Email resent!</p>
       )}
     </div>
   );

@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
+const forgeInput =
+  "w-full rounded-md border border-[var(--bronze)] px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-1 focus:border-[var(--molten)] focus:ring-[var(--molten)]/30 placeholder:text-[var(--cast-dimmer)] disabled:opacity-50";
+
 export function ResetPasswordForm() {
   const params = useSearchParams();
   const router = useRouter();
@@ -23,7 +26,7 @@ export function ResetPasswordForm() {
         <p className="text-sm text-red-400">Invalid reset link. Please request a new one.</p>
         <a
           href="/forgot-password"
-          className="mt-4 inline-block text-sm text-portal-text/50 hover:text-portal-text hover:underline"
+          className="mt-4 inline-block text-sm text-[var(--ember2)] hover:underline"
         >
           Request new link
         </a>
@@ -35,11 +38,11 @@ export function ResetPasswordForm() {
     return (
       <div className="text-center">
         <div className="mb-4 text-3xl">✅</div>
-        <h2 className="mb-2 text-lg font-semibold text-portal-text">Password updated!</h2>
-        <p className="mb-6 text-sm text-portal-text/50">You can now sign in with your new password.</p>
+        <h2 className="mb-2 text-lg font-semibold" style={{ color: "var(--cast)" }}>Password updated!</h2>
+        <p className="mb-6 text-sm text-[var(--cast-dim)]">You can now sign in with your new password.</p>
         <a
           href="/sign-in"
-          className="inline-block rounded-md bg-portal-text px-6 py-2.5 text-sm font-semibold text-portal-bg transition-opacity hover:opacity-90"
+          className="fgbtn inline-block px-6 py-2.5 text-sm"
         >
           Sign in
         </a>
@@ -92,12 +95,13 @@ export function ResetPasswordForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={loading}
-            className="w-full rounded-md border border-portal-border bg-portal-surface px-4 py-2.5 text-sm text-portal-text placeholder-portal-text/40 focus:outline-none focus:ring-1 focus:ring-portal-border disabled:opacity-50"
+            className={forgeInput}
+            style={{ background: "var(--iron)", color: "var(--cast)" }}
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-portal-text/50 hover:text-portal-text"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--cast-dim)] hover:text-[var(--cast)]"
           >
             {showPassword ? "Hide" : "Show"}
           </button>
@@ -105,7 +109,7 @@ export function ResetPasswordForm() {
         {fieldErrors.password && (
           <p className="text-xs text-red-400">{fieldErrors.password[0]}</p>
         )}
-        <p className="text-xs text-portal-text/40">
+        <p className="text-xs text-[var(--cast-dimmer)]">
           Min 8 characters, uppercase, lowercase, number, special character.
         </p>
       </div>
@@ -120,12 +124,13 @@ export function ResetPasswordForm() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             disabled={loading}
-            className="w-full rounded-md border border-portal-border bg-portal-surface px-4 py-2.5 text-sm text-portal-text placeholder-portal-text/40 focus:outline-none focus:ring-1 focus:ring-portal-border disabled:opacity-50"
+            className={forgeInput}
+            style={{ background: "var(--iron)", color: "var(--cast)" }}
           />
           <button
             type="button"
             onClick={() => setShowConfirm((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-portal-text/50 hover:text-portal-text"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--cast-dim)] hover:text-[var(--cast)]"
           >
             {showConfirm ? "Hide" : "Show"}
           </button>
@@ -140,7 +145,7 @@ export function ResetPasswordForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-md bg-portal-text py-2.5 text-sm font-semibold text-portal-bg transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="fgbtn w-full disabled:opacity-50"
       >
         {loading ? "Updating…" : "Update password"}
       </button>

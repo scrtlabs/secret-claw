@@ -11,6 +11,9 @@ import { useGooglePopup } from "@/lib/auth/useGooglePopup";
 type WalletModal = null | "keplr" | "metamask";
 type InstallPrompt = null | "keplr" | "metamask";
 
+const forgeInput =
+  "w-full rounded-md border border-[var(--bronze)] px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-1 focus:border-[var(--molten)] focus:ring-[var(--molten)]/30 placeholder:text-[var(--cast-dimmer)] disabled:opacity-50";
+
 export function SignInForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -51,8 +54,6 @@ export function SignInForm() {
 
     router.push(callbackUrl);
   };
-
-  // ── Google (popup) ──────────────────────────────────────────────────────────
 
   // ── Wallet selection ────────────────────────────────────────────────────────
 
@@ -127,7 +128,8 @@ export function SignInForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full rounded-md border border-portal-border bg-portal-surface px-4 py-2.5 text-sm text-portal-text placeholder-portal-text/40 focus:outline-none focus:ring-1 focus:ring-portal-border"
+          className={forgeInput}
+          style={{ background: "var(--iron)", color: "var(--cast)" }}
         />
         <div className="relative">
           <input
@@ -136,12 +138,13 @@ export function SignInForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full rounded-md border border-portal-border bg-portal-surface px-4 py-2.5 text-sm text-portal-text placeholder-portal-text/40 focus:outline-none focus:ring-1 focus:ring-portal-border"
+            className={forgeInput}
+            style={{ background: "var(--iron)", color: "var(--cast)" }}
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-portal-text/50 hover:text-portal-text"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--cast-dim)] hover:text-[var(--cast)]"
           >
             {showPassword ? "Hide" : "Show"}
           </button>
@@ -150,7 +153,7 @@ export function SignInForm() {
         {emailError && <p className="text-xs text-red-400">{emailError}</p>}
 
         <div className="flex justify-end">
-          <a href="/forgot-password" className="text-xs text-portal-text/50 hover:text-portal-text">
+          <a href="/forgot-password" className="text-xs text-[var(--ember2)] hover:underline">
             Forgot password?
           </a>
         </div>
@@ -158,7 +161,7 @@ export function SignInForm() {
         <button
           type="submit"
           disabled={emailLoading || googlePending}
-          className="w-full rounded-md bg-portal-text py-2.5 text-sm font-semibold text-portal-bg transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="fgbtn w-full disabled:opacity-50"
         >
           {emailLoading ? "Signing in…" : "Sign in"}
         </button>
@@ -166,9 +169,9 @@ export function SignInForm() {
 
       {/* Divider */}
       <div className="flex items-center gap-3">
-        <div className="flex-1 border-t border-portal-border" />
-        <span className="text-xs text-portal-text/40">or</span>
-        <div className="flex-1 border-t border-portal-border" />
+        <div className="flex-1 border-t border-[var(--bronze)]/40" />
+        <span className="text-xs text-[var(--cast-dimmer)]">or</span>
+        <div className="flex-1 border-t border-[var(--bronze)]/40" />
       </div>
 
       {/* Google */}
@@ -176,7 +179,7 @@ export function SignInForm() {
         type="button"
         onClick={openGooglePopup}
         disabled={googlePending}
-        className="flex w-full items-center justify-center gap-3 rounded-md border border-portal-border bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] shadow-sm transition-colors hover:bg-[#F5F5F5] disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-3 rounded-md border border-[var(--bronze)]/50 bg-white px-4 py-2.5 text-sm font-semibold text-[#1F1F1F] shadow-sm transition-colors hover:bg-[#F5F5F5] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {googlePending ? (
           <Spinner className="h-5 w-5 text-[#1F1F1F]/40" />
@@ -191,7 +194,8 @@ export function SignInForm() {
         type="button"
         disabled={googlePending}
         onClick={() => { setWalletModal("keplr"); setInstallPrompt(null); setWalletError(""); }}
-        className="flex w-full items-center justify-center gap-3 rounded-md border border-portal-border bg-portal-surface px-4 py-2.5 text-sm font-semibold text-portal-text transition-colors hover:bg-portal-border/30 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-3 rounded-md border border-[var(--bronze)] px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--bronze)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+        style={{ background: "var(--iron)", color: "var(--cast)" }}
       >
         <WalletIcon className="h-5 w-5" />
         Connect Wallet
@@ -204,10 +208,11 @@ export function SignInForm() {
           onClick={() => setWalletModal(null)}
         >
           <div
-            className="w-80 rounded-xl border border-portal-border bg-portal-surface p-6 shadow-xl"
+            className="w-80 rounded-xl border border-[var(--bronze)] p-6 shadow-xl"
+            style={{ background: "linear-gradient(180deg, #1a1613, #141110)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="mb-4 text-center text-sm font-semibold text-portal-text">
+            <h2 className="mb-4 text-center text-sm font-semibold" style={{ color: "var(--cast)" }}>
               Select your wallet
             </h2>
 
@@ -232,14 +237,14 @@ export function SignInForm() {
                   ? <KeplrIcon className="h-12 w-12" />
                   : <MetaMaskIcon className="h-12 w-12" />
                 }
-                <p className="text-sm text-portal-text/70">
+                <p className="text-sm text-[var(--cast-dim)]">
                   {installPrompt === "keplr" ? "Keplr" : "MetaMask"} wallet not detected. Please install the extension to continue.
                 </p>
                 <a
                   href={installPrompt === "keplr" ? "https://www.keplr.app/" : "https://metamask.io/"}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-md bg-portal-text px-4 py-2 text-sm font-semibold text-portal-bg hover:opacity-90"
+                  className="fgbtn px-4 py-2 text-sm"
                 >
                   Install {installPrompt === "keplr" ? "Keplr" : "MetaMask"}
                 </a>
@@ -251,13 +256,13 @@ export function SignInForm() {
             )}
 
             {walletLoading && (
-              <p className="mt-3 text-center text-xs text-portal-text/50">Connecting…</p>
+              <p className="mt-3 text-center text-xs text-[var(--cast-dim)]">Connecting…</p>
             )}
 
             <button
               type="button"
               onClick={() => setWalletModal(null)}
-              className="mt-4 w-full text-center text-xs text-portal-text/40 hover:text-portal-text"
+              className="mt-4 w-full text-center text-xs text-[var(--cast-dimmer)] hover:text-[var(--cast)]"
             >
               Cancel
             </button>
@@ -284,10 +289,11 @@ function WalletOption({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex flex-1 flex-col items-center gap-2 rounded-lg border border-portal-border bg-portal-bg p-4 transition-colors hover:bg-portal-border/20 disabled:opacity-50"
+      className="flex flex-1 flex-col items-center gap-2 rounded-lg border border-[var(--bronze)]/60 p-4 transition-colors hover:bg-[var(--bronze)]/10 disabled:opacity-50"
+      style={{ background: "var(--iron)" }}
     >
       {icon}
-      <span className="text-sm text-portal-text">{label}</span>
+      <span className="text-sm text-[var(--cast)]">{label}</span>
     </button>
   );
 }
