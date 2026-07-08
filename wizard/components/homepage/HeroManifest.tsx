@@ -143,7 +143,7 @@ export default function HeroManifest() {
               {/* stamp — circular badge with animation inside */}
               <div className="man__stamp">
                 {/* animation clipped to circle */}
-                <div style={{ position: "absolute", inset: 0, borderRadius: "50%", overflow: "hidden" }}>
+                <div style={{ position: "absolute", inset: 14, borderRadius: "50%", overflow: "hidden" }}>
                   <ForgeAnimation style={{ width: "100%", height: "100%" }} />
                 </div>
                 {/* circle border + curved text overlay */}
