@@ -234,10 +234,10 @@ export default function FoundryDeploy() {
                     <path id="deploy-top" d="M 14 48 A 34 34 0 0 1 82 48" />
                     <path id="deploy-bot" d="M 14 48 A 34 34 0 0 0 82 48" />
                   </defs>
-                  <text fontFamily="var(--font-mono),monospace" fontSize="7" letterSpacing="2.5" fill="var(--ember2)">
+                  <text fontFamily="var(--font-mono),monospace" fontSize="8" letterSpacing="2.5" fill="var(--ember2)">
                     <textPath href="#deploy-top" startOffset="50%" textAnchor="middle">SEALED · FORGED</textPath>
                   </text>
-                  <text fontFamily="var(--font-mono),monospace" fontSize="7" letterSpacing="2" fill="var(--cast-dim)">
+                  <text fontFamily="var(--font-mono),monospace" fontSize="8" letterSpacing="2" fill="var(--cast-dim)">
                     <textPath href="#deploy-bot" startOffset="50%" textAnchor="middle">SecretForge</textPath>
                   </text>
                 </svg>

@@ -154,10 +154,10 @@ export default function HeroManifest() {
                     <path id="hero-top" d="M 14 48 A 34 34 0 0 1 82 48" />
                     <path id="hero-bot" d="M 14 48 A 34 34 0 0 0 82 48" />
                   </defs>
-                  <text fontFamily="var(--font-mono),monospace" fontSize="7" letterSpacing="2.5" fill="var(--ember2)">
+                  <text fontFamily="var(--font-mono),monospace" fontSize="8" letterSpacing="2.5" fill="var(--ember2)">
                     <textPath href="#hero-top" startOffset="50%" textAnchor="middle">SEALED · FORGED</textPath>
                   </text>
-                  <text fontFamily="var(--font-mono),monospace" fontSize="7" letterSpacing="2" fill="var(--cast-dim)">
+                  <text fontFamily="var(--font-mono),monospace" fontSize="8" letterSpacing="2" fill="var(--cast-dim)">
                     <textPath href="#hero-bot" startOffset="50%" textAnchor="middle">SecretForge</textPath>
                   </text>
                 </svg>
