@@ -71,6 +71,8 @@ export default function ForgeAnimation({ className, style }: Props) {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const cv = ref.current;
     if (!cv) return;
+    // Capture as a definitely-non-null local so closures keep the narrowed type.
+    const canvas = cv;
 
     const fxA = document.createElement("canvas"); fxA.width = LW * S; fxA.height = LH * S;
     const fxH = document.createElement("canvas"); fxH.width = LW * S; fxH.height = LH * S;
@@ -87,14 +89,14 @@ export default function ForgeAnimation({ className, style }: Props) {
       loadImg("/brand/forge-anvil.png"),
     ]).then(([hammer, anvil]) => {
       const start = performance.now();
-      const ctx = cv.getContext("2d")!;
+      const ctx = canvas.getContext("2d")!;
 
       function frame(now: number) {
         const time = (now - start) / 1000;
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        const vw = cv.clientWidth, vh = cv.clientHeight;
-        if (cv.width !== vw * dpr) { cv.width = vw * dpr; }
-        if (cv.height !== vh * dpr) { cv.height = vh * dpr; }
+        const vw = canvas.clientWidth, vh = canvas.clientHeight;
+        if (canvas.width !== vw * dpr) { canvas.width = vw * dpr; }
+        if (canvas.height !== vh * dpr) { canvas.height = vh * dpr; }
         const fit = Math.min(vw / W, vh / H);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.fillStyle = "rgba(10,7,5,0)";
