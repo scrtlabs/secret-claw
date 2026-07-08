@@ -22,12 +22,6 @@ export function NavAuthButtons({ size = "sm" }: NavAuthButtonsProps) {
   if (status === "authenticated") {
     return (
       <div className="flex items-center gap-2">
-        <Link
-          href="/create-agent"
-          className={`${base} fgbtn`}
-        >
-          Launch wizard
-        </Link>
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/" })}
