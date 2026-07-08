@@ -74,6 +74,8 @@ RUN apk add --no-cache openssl \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 # Static assets that the standalone server expects to find under .next/static.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Public directory — standalone mode does not bundle public/ automatically.
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Deploy templates baked into the image. Pulled from the builder stage so
 # the runtime image has a single source of truth (matches what the build
