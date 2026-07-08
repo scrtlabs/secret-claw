@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import EmberCanvas from "@/components/homepage/foundry/EmberCanvas";
+import ForgeAnimation from "@/components/homepage/foundry/ForgeAnimation";
 
 // The sealed card cycles through the runtimes and models you could forge.
 const RUNTIMES = ["Hermes", "OpenClaw"];
@@ -139,45 +140,18 @@ export default function HeroManifest() {
                 </div>
               </div>
 
-              {/* wax / metal seal stamp */}
-              <svg
-                className="man__stamp"
-                viewBox="0 0 100 100"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <defs>
-                  <radialGradient id="man-metal" cx="42%" cy="34%" r="75%">
-                    <stop offset="0%" stopColor="#4a3b30" />
-                    <stop offset="45%" stopColor="#2a221d" />
-                    <stop offset="100%" stopColor="#14100d" />
-                  </radialGradient>
-                  <linearGradient id="man-ember" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#FFB020" />
-                    <stop offset="40%" stopColor="#FF7A18" />
-                    <stop offset="70%" stopColor="#FB2011" />
-                    <stop offset="100%" stopColor="#FB2011" />
-                  </linearGradient>
-                  <path id="man-ring" d="M50,14 a36,36 0 1,1 -0.1,0" />
-                </defs>
-                <circle cx="50" cy="50" r="48" fill="url(#man-metal)" stroke="#3a2e26" strokeWidth="1.5" />
-                <circle cx="50" cy="50" r="39" fill="none" stroke="#3a2e26" strokeWidth="1" />
-                <text fontFamily="var(--font-mono), monospace" fontSize="8.5" letterSpacing="2.4" fill="#9C948A">
-                  <textPath href="#man-ring" startOffset="0%">
-                    · SEALED · ATTESTED · SECRETVM ·
-                  </textPath>
-                </text>
-                <image
-                  href="/brand/logo-cream.png"
-                  x="24"
-                  y="24"
-                  width="52"
-                  height="52"
-                  preserveAspectRatio="xMidYMid meet"
-                  transform="rotate(15 50 50)"
-                />
-              </svg>
+              {/* forge animation — hammer striking anvil */}
+              <ForgeAnimation
+                style={{
+                  position: "absolute",
+                  top: -28,
+                  right: -24,
+                  width: 160,
+                  height: 130,
+                  zIndex: 2,
+                  pointerEvents: "none",
+                }}
+              />
             </div>
           </div>
         </div>

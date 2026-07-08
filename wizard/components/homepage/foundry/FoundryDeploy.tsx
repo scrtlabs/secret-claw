@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import ForgeAnimation from "@/components/homepage/foundry/ForgeAnimation";
 
 type Runtime = "openclaw" | "hermes";
 type Tier = "secret" | "byo";
@@ -219,43 +220,19 @@ export default function FoundryDeploy() {
                 <ManifestRow k="operator" value="no access" />
               </div>
 
-              <svg
-                className={`man__stamp man__stamp--live${ready ? "" : " man__stamp--pending"}`}
-                viewBox="0 0 100 100"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <defs>
-                  <radialGradient id="fgd-metal" cx="42%" cy="34%" r="75%">
-                    <stop offset="0%" stopColor="#4a3b30" />
-                    <stop offset="45%" stopColor="#2a221d" />
-                    <stop offset="100%" stopColor="#14100d" />
-                  </radialGradient>
-                  <linearGradient id="fgd-ember" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#FFB020" />
-                    <stop offset="40%" stopColor="#FF7A18" />
-                    <stop offset="100%" stopColor="#FB2011" />
-                  </linearGradient>
-                  <path id="fgd-ring" d="M50,14 a36,36 0 1,1 -0.1,0" />
-                </defs>
-                <circle cx="50" cy="50" r="48" fill="url(#fgd-metal)" stroke="#3a2e26" strokeWidth="1.5" />
-                <circle cx="50" cy="50" r="39" fill="none" stroke="#3a2e26" strokeWidth="1" />
-                <text fontFamily="var(--font-mono), monospace" fontSize="8.5" letterSpacing="2.4" fill="#9C948A">
-                  <textPath href="#fgd-ring" startOffset="0%">
-                    · SEALED · ATTESTED · SECRETVM ·
-                  </textPath>
-                </text>
-                <image
-                  href="/brand/logo-cream.png"
-                  x="24"
-                  y="24"
-                  width="52"
-                  height="52"
-                  preserveAspectRatio="xMidYMid meet"
-                  transform="rotate(15 50 50)"
-                />
-              </svg>
+              <ForgeAnimation
+                style={{
+                  position: "absolute",
+                  top: -28,
+                  right: -24,
+                  width: 160,
+                  height: 130,
+                  zIndex: 2,
+                  pointerEvents: "none",
+                  opacity: ready ? 1 : 0.3,
+                  transition: "opacity .3s ease",
+                }}
+              />
             </div>
           </div>
         </div>
