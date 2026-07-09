@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "prebuild": "node scripts/copy-templates.mjs && prisma generate",
-    "dev": "node scripts/copy-templates.mjs && prisma generate && next dev",
+    "dev": "node scripts/copy-templates.mjs && prisma generate && next dev --port 3005",
     "build": "next build",
     "start": "next start",
     "db:migrate": "prisma migrate deploy",

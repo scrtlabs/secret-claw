@@ -8,6 +8,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model PortalLink {
+  id           String   @id @default(cuid())
+  userSub      String   @unique
+  email        String?
+  apiKeyCipher String
+  balance      Float    @default(0)
+  linkedAt     DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 model User {
   id                       String    @id @default(cuid())
   email                    String    @unique

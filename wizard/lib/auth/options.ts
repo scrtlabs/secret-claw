@@ -1,6 +1,7 @@
 import { type NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { syncPortalAccount } from "@/lib/portal-link/sync";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db/prisma";
 import { fromBase64, fromBech32, toBech32 } from "@cosmjs/encoding";
@@ -172,6 +173,13 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
+    async signIn({ user }) {
+      const email = user.email;
+      if (email && !email.endsWith("@keplr.wallet") && !email.endsWith("@metamask.wallet")) {
+        syncPortalAccount({ userSub: user.id, email }).catch(() => {});
+      }
+      return true;
+    },
     async jwt({ token, user, account }) {
       if (user) {
         token.provider = account?.provider ?? "credentials";

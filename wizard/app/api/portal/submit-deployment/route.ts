@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import { render } from "@/lib/render";
 import { createVm, getJobStatus } from "@/lib/portal-client";
+import { resolvePortalApiKey } from "@/lib/portal-link/resolve";
 import {
   isDemoMode,
   DEMO_BOT_USERNAME,
@@ -44,12 +45,17 @@ export async function POST(request: Request) {
   // submissions that predate the Hermes-runtime addition.
   const runtime = body.runtime === "hermes" ? "hermes" : "openclaw";
 
-  if (!body.secretaiApiKey) {
+  // Manual key wins; otherwise fall back to the signed-in user's linked
+  // portal account. The linked key stays server-side — the rest of the
+  // pipeline sees it as if the client had sent it.
+  const secretaiApiKey = await resolvePortalApiKey(body.secretaiApiKey);
+  if (!secretaiApiKey) {
     return NextResponse.json(
-      { error: "secretaiApiKey is required" },
+      { error: "secretaiApiKey is required (or connect your SecretAI account)" },
       { status: 400 },
     );
   }
+  body.secretaiApiKey = secretaiApiKey;
   if (tier === "byo" && !body.anthropicApiKey) {
     return NextResponse.json(
       { error: "anthropicApiKey is required for BYO tier" },

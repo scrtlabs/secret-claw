@@ -144,6 +144,10 @@ export default function CreateAgentPage() {
   const [telegramState, setTelegramState] = useState<ValidationState>({ kind: "idle" });
   const [botUsername, setBotUsername] = useState<string | undefined>(undefined);
 
+  interface PortalLinkInfo { enabled: boolean; linked: boolean; email?: string; balance?: number }
+  const [portalLink, setPortalLink] = useState<PortalLinkInfo | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showInvalidHighlights, setShowInvalidHighlights] = useState(false);
@@ -169,9 +173,20 @@ export default function CreateAgentPage() {
     } catch {
       // Malformed/absent query string; keep defaults.
     }
+    void (async () => {
+      try {
+        const res = await fetch("/api/portal-link");
+        if (!res.ok) return;
+        const body = (await res.json()) as { enabled: boolean; linked: boolean; email?: string; balance?: number };
+        setPortalLink(body);
+      } catch {
+        // Feature stays hidden; manual key entry still works.
+      }
+    })();
   }, []);
 
-  const secretaiValid = secretaiState.kind === "valid";
+  const usingLinkedKey = portalLink?.linked === true && secretaiKey.trim() === "";
+  const secretaiValid = usingLinkedKey || secretaiState.kind === "valid";
   const anthropicValid = tier === "secret" ? true : anthropicState.kind === "valid";
   const telegramValid =
     telegramChoice === "skipped" || (telegramChoice === "enabled" && telegramState.kind === "valid");
@@ -306,7 +321,9 @@ export default function CreateAgentPage() {
     setShowInvalidHighlights(true);
     setSubmitting(true);
 
-    const secretaiResult = await validateSecretai();
+    const secretaiResult: ValidationState = usingLinkedKey
+      ? { kind: "valid" }
+      : await validateSecretai();
     const anthropicResult: ValidationState =
       tier === "byo" ? await validateAnthropic() : { kind: "valid" };
 
@@ -343,7 +360,9 @@ export default function CreateAgentPage() {
         body: JSON.stringify({
           runtime,
           tier,
-          secretaiApiKey: secretaiKey.trim(),
+          // Omitted when using a linked account — the server resolves the
+          // stored key so it never round-trips through the browser.
+          secretaiApiKey: usingLinkedKey ? undefined : secretaiKey.trim(),
           secretaiModel: tier === "secret" ? secretaiModel : undefined,
           anthropicApiKey: tier === "byo" ? anthropicKey.trim() : undefined,
           telegramEnabled: telegramChoice === "enabled",
@@ -360,7 +379,9 @@ export default function CreateAgentPage() {
       }
       const body = (await res.json()) as { deployment_id: string };
       try {
-        sessionStorage.setItem(`secret-claw:apikey:${body.deployment_id}`, secretaiKey.trim());
+        if (!usingLinkedKey) {
+          sessionStorage.setItem(`secret-claw:apikey:${body.deployment_id}`, secretaiKey.trim());
+        }
       } catch {
         // sessionStorage can be blocked in private windows.
       }
@@ -436,33 +457,85 @@ export default function CreateAgentPage() {
           <SectionShell
             id="section-secretai"
             index={2}
-            title="SecretAI Portal API Key"
-            helper="Go to the SecretAI portal, sign in with Keplr, generate an API key on your account, and paste it here. The key never leaves the wizard's server-side proxy — it's used to call the portal on your behalf and discarded after the request."
-            status={secretaiState.kind === "idle" ? undefined : secretaiState}
+            title="SecretAI Portal Account"
+            helper={usingLinkedKey ? undefined : "Your portal account is synced automatically at sign-in. If it wasn't detected, paste your API key below."}
+            status={
+              usingLinkedKey
+                ? { kind: "valid", message: "Synced" }
+                : secretaiState.kind === "idle" ? undefined : secretaiState
+            }
             invalid={showInvalidHighlights && !secretaiValid}
           >
-            <ForgeInput
-              type="text"
-              placeholder="sk-..."
-              value={secretaiKey}
-              onChange={(e) => {
-                setSecretaiKey(e.target.value);
-                if (secretaiState.kind !== "idle") setSecretaiState({ kind: "idle" });
-              }}
-              onBlur={() => void validateSecretai()}
-              invalid={secretaiState.kind === "invalid"}
-            />
-            <p className="mt-2 text-[11px]" style={{ color: "var(--cast-dim)" }}>
-              <a
-                href="https://secretai.scrtlabs.com"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:underline"
-                style={{ color: "var(--ember2)" }}
-              >
-                Generate a key in the SecretAI portal →
-              </a>
-            </p>
+            {portalLink?.enabled && portalLink.linked ? (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--bronze)] px-4 py-3" style={{ background: "var(--iron)" }}>
+                <div className="text-sm" style={{ color: "var(--cast)" }}>
+                  Synced with SecretAI portal
+                  {portalLink.email ? <span style={{ color: "var(--cast-dim)" }}> · {portalLink.email}</span> : null}
+                  {portalLink.balance !== undefined ? (
+                    <span style={{ color: "var(--ember2)" }}> · balance ${portalLink.balance.toFixed(2)}</span>
+                  ) : null}
+                  <p className="mt-0.5 text-[11px]" style={{ color: "var(--cast-dimmer)" }}>
+                    API key loaded automatically — nothing to paste.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={syncing}
+                    onClick={() => {
+                      setSyncing(true);
+                      fetch("/api/portal-link", { method: "POST" })
+                        .then((r) => r.json())
+                        .then((b) => setPortalLink(b as PortalLinkInfo))
+                        .catch(() => {})
+                        .finally(() => setSyncing(false));
+                    }}
+                    className="text-xs hover:underline underline-offset-2 disabled:opacity-50"
+                    style={{ color: "var(--cast-dim)" }}
+                  >
+                    {syncing ? "Refreshing…" : "Refresh"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetch("/api/portal-link", { method: "DELETE" })
+                        .then(() => setPortalLink((p) => p ? { ...p, linked: false } : p))
+                        .catch(() => {});
+                    }}
+                    className="text-xs hover:underline underline-offset-2"
+                    style={{ color: "var(--cast-dim)" }}
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {usingLinkedKey ? null : (
+              <>
+                <ForgeInput
+                  type="text"
+                  placeholder="sk-..."
+                  value={secretaiKey}
+                  onChange={(e) => {
+                    setSecretaiKey(e.target.value);
+                    if (secretaiState.kind !== "idle") setSecretaiState({ kind: "idle" });
+                  }}
+                  onBlur={() => void validateSecretai()}
+                  invalid={secretaiState.kind === "invalid"}
+                />
+                <p className="mt-2 text-[11px]" style={{ color: "var(--cast-dim)" }}>
+                  <a
+                    href="https://secretai.scrtlabs.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline"
+                    style={{ color: "var(--ember2)" }}
+                  >
+                    Generate a key in the SecretAI portal →
+                  </a>
+                </p>
+              </>
+            )}
           </SectionShell>
 
           {tier === "byo" ? (

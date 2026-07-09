@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { getJobStatus } from "@/lib/portal-client";
+import { resolvePortalApiKey } from "@/lib/portal-link/resolve";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,10 @@ export async function GET(
   if (record.status === "submitted" || record.status === "provisioning") {
     if (record.job_id) {
       const authHeader = request.headers.get("authorization") || "";
-      const apiKey = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const bearerKey = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      // Linked-account users never see their key client-side, so nothing
+      // arrives in the Authorization header — fall back to the stored key.
+      const apiKey = await resolvePortalApiKey(bearerKey || undefined);
       if (apiKey) {
         const job = await getJobStatus({ apiKey, jobId: record.job_id });
         if (job.ok) {
