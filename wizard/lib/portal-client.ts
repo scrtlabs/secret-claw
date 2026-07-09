@@ -9,7 +9,7 @@
  * single-hop through these helpers.
  */
 
-const DEFAULT_PORTAL_URL = "https://secretai.scrtlabs.com";
+const DEFAULT_PORTAL_URL = "https://preview-aidev.scrtlabs.com";
 const DEFAULT_FETCH_TIMEOUT_MS = 5000;
 
 export function portalBaseUrl(): string {

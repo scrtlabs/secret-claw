@@ -173,10 +173,46 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
-    async signIn({ user }) {
-      const email = user.email;
+    async signIn({ user, account }) {
+      const provider = account?.provider ?? "credentials";
+      const sub = user.id ?? "";
+      const email = user.email ?? "";
+
+      // Persist a User row for OAuth providers — credentials users are already
+      // created during the sign-up flow; wallet sign-ins also get a row so
+      // every authenticated user has a DB identity.
+      if (sub) {
+        try {
+          if (provider === "keplr" || provider === "metamask") {
+            await prisma.user.upsert({
+              where: { sub },
+              update: {},
+              create: { sub, email, emailConfirmed: true },
+            });
+          } else if (provider === "google") {
+            // Identify by email so an existing email+password account is
+            // merged with the Google identity rather than duplicated.
+            const existing = await prisma.user.findUnique({ where: { email } });
+            if (existing) {
+              await prisma.user.update({ where: { email }, data: { sub } });
+            } else {
+              await prisma.user.create({ data: { sub, email, emailConfirmed: true } });
+            }
+          }
+          // credentials: already persisted at sign-up time
+        } catch (e) {
+          if (process.env.NODE_ENV === "development") console.error("[auth] user upsert failed:", e);
+        }
+      }
+
+      // Portal sync for non-wallet users
       if (email && !email.endsWith("@keplr.wallet") && !email.endsWith("@metamask.wallet")) {
-        syncPortalAccount({ userSub: user.id, email }).catch(() => {});
+        // Await with a 5-second ceiling so serverless functions don't terminate
+        // before the sync resolves — pure fire-and-forget is unreliable there.
+        await Promise.race([
+          syncPortalAccount({ userSub: sub, email }),
+          new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+        ]).catch(() => {});
       }
       return true;
     },

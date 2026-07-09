@@ -178,6 +178,17 @@ export default function CreateAgentPage() {
         const res = await fetch("/api/portal-link");
         if (!res.ok) return;
         const body = (await res.json()) as { enabled: boolean; linked: boolean; email?: string; balance?: number };
+        // If the portal link feature is on but not yet linked, the signIn callback
+        // sync may have raced (or lost in a serverless context). Trigger a re-sync
+        // now — it's idempotent and completes synchronously server-side.
+        if (body.enabled && !body.linked) {
+          const retry = await fetch("/api/portal-link", { method: "POST" }).catch(() => null);
+          if (retry?.ok) {
+            const updated = (await retry.json()) as typeof body;
+            setPortalLink(updated);
+            return;
+          }
+        }
         setPortalLink(body);
       } catch {
         // Feature stays hidden; manual key entry still works.

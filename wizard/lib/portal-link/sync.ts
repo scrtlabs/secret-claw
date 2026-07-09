@@ -2,13 +2,22 @@ import { portalBaseUrl } from "@/lib/portal-client";
 import { portalLinkEnabled, portalSyncSecret } from "./config";
 import { savePortalLink } from "./store";
 
+const dev = process.env.NODE_ENV === "development";
+
 export async function syncPortalAccount(opts: {
   userSub: string;
   email: string;
 }): Promise<void> {
-  if (!portalLinkEnabled()) return;
+  if (!portalLinkEnabled()) {
+    if (dev) console.warn("[portal-sync] skipped — PORTAL_LINK_ENCRYPTION_KEY or PORTAL_SYNC_SECRET not set");
+    return;
+  }
+  if (!opts.userSub || !opts.email) {
+    if (dev) console.warn("[portal-sync] skipped — missing userSub or email", opts);
+    return;
+  }
+
   const secret = portalSyncSecret();
-  if (!secret || !opts.email) return;
 
   let body: { apiKey?: string; balance?: number };
   try {
@@ -18,14 +27,32 @@ export async function syncPortalAccount(opts: {
       body: JSON.stringify({ email: opts.email, secret }),
       signal: AbortSignal.timeout(8000),
     });
-    if (res.status === 404 || res.status === 501) return; // no portal account or feature disabled
-    if (!res.ok) return;
+    if (res.status === 501) {
+      if (dev) console.warn("[portal-sync] portal: WIZARD_SYNC_SECRET not configured on server");
+      return;
+    }
+    if (res.status === 404) {
+      if (dev) console.warn("[portal-sync] portal: no account or default API key for", opts.email);
+      return;
+    }
+    if (res.status === 403) {
+      if (dev) console.error("[portal-sync] portal: secret mismatch — check PORTAL_SYNC_SECRET vs WIZARD_SYNC_SECRET");
+      return;
+    }
+    if (!res.ok) {
+      if (dev) console.error("[portal-sync] portal returned", res.status, await res.text().catch(() => ""));
+      return;
+    }
     body = (await res.json()) as typeof body;
-  } catch {
-    return; // portal unreachable — degrade silently
+  } catch (e) {
+    if (dev) console.error("[portal-sync] fetch failed:", e);
+    return;
   }
 
-  if (!body.apiKey) return;
+  if (!body.apiKey) {
+    if (dev) console.warn("[portal-sync] portal returned no apiKey");
+    return;
+  }
 
   try {
     await savePortalLink({
@@ -34,7 +61,8 @@ export async function syncPortalAccount(opts: {
       apiKey: body.apiKey,
       balance: body.balance ?? 0,
     });
-  } catch {
-    // DB write failure — portal sync is best-effort
+    if (dev) console.log("[portal-sync] linked", opts.email, "→ userSub", opts.userSub);
+  } catch (e) {
+    if (dev) console.error("[portal-sync] DB save failed:", e);
   }
 }
