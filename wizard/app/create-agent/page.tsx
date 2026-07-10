@@ -107,12 +107,14 @@ function ForgeOption({
   tag,
   description,
   selected,
+  hideCheck,
   onClick,
 }: {
   title: string;
   tag?: string;
   description: string;
   selected: boolean;
+  hideCheck?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -122,7 +124,7 @@ function ForgeOption({
         {tag ? <span className="fgopt__tag">{tag}</span> : null}
       </div>
       <p className="fgopt__body">{description}</p>
-      <span className="fgopt__check">✓</span>
+      {!hideCheck && <span className="fgopt__check">✓</span>}
     </button>
   );
 }
@@ -439,6 +441,7 @@ export default function CreateAgentPage() {
                 tag="Autonomous"
                 description="OpenClaw runtime, Claude Sonnet 4.6 inference (your Anthropic key)."
                 selected={runtime === "openclaw" && tier === "byo"}
+                hideCheck
                 onClick={() => { setRuntime("openclaw"); setTier("byo"); }}
               />
               <ForgeOption
@@ -446,6 +449,7 @@ export default function CreateAgentPage() {
                 tag="In-enclave"
                 description="OpenClaw runtime, SecretAI rytn / gemma4:31b inference (your SecretAI key)."
                 selected={runtime === "openclaw" && tier === "secret"}
+                hideCheck
                 onClick={() => { setRuntime("openclaw"); setTier("secret"); }}
               />
               <ForgeOption
@@ -453,6 +457,7 @@ export default function CreateAgentPage() {
                 tag="Lean"
                 description="Hermes Agent v0.14 runtime, Claude Sonnet 4.6 inference (your Anthropic key)."
                 selected={runtime === "hermes" && tier === "byo"}
+                hideCheck
                 onClick={() => { setRuntime("hermes"); setTier("byo"); }}
               />
               <ForgeOption
@@ -460,6 +465,7 @@ export default function CreateAgentPage() {
                 tag="Lean · In-enclave"
                 description="Hermes Agent v0.14 runtime, SecretAI rytn / gemma4:31b inference (your SecretAI key)."
                 selected={runtime === "hermes" && tier === "secret"}
+                hideCheck
                 onClick={() => { setRuntime("hermes"); setTier("secret"); }}
               />
             </div>
