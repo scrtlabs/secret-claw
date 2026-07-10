@@ -181,6 +181,7 @@ export const authOptions: NextAuthOptions = {
       // Persist a User row for OAuth providers — credentials users are already
       // created during the sign-up flow; wallet sign-ins also get a row so
       // every authenticated user has a DB identity.
+      console.log("[auth] signIn provider=%s sub=%s email=%s", provider, sub, email);
       if (sub) {
         try {
           if (provider === "keplr" || provider === "metamask") {
@@ -193,15 +194,17 @@ export const authOptions: NextAuthOptions = {
             // Identify by email so an existing email+password account is
             // merged with the Google identity rather than duplicated.
             const existing = await prisma.user.findUnique({ where: { email } });
+            console.log("[auth] google existing user:", existing?.id ?? "none");
             if (existing) {
               await prisma.user.update({ where: { email }, data: { sub } });
             } else {
               await prisma.user.create({ data: { sub, email, emailConfirmed: true } });
             }
+            console.log("[auth] google user upsert done");
           }
           // credentials: already persisted at sign-up time
         } catch (e) {
-          if (process.env.NODE_ENV === "development") console.error("[auth] user upsert failed:", e);
+          console.error("[auth] user upsert failed:", e);
         }
       }
 
