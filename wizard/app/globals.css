@@ -693,6 +693,11 @@ body {
   transform: rotate(9deg) scale(0.9);
 }
 
+/* ── Agent list row ──────────────────────────────────────────────────────── */
+.agent-row:hover {
+  border-color: var(--ember2) !important;
+}
+
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 .fgfoot {
   border-top: 1px solid var(--bronze);

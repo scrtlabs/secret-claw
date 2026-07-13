@@ -3,6 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+function BackButton() {
+  return (
+    <button
+      type="button"
+      onClick={() => window.history.back()}
+      className="mb-4 flex items-center gap-1.5 text-xs font-medium transition-colors"
+      style={{ color: "var(--cast-dimmer)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--cast)"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--cast-dimmer)"; }}
+    >
+      <span style={{ fontSize: "15px", lineHeight: 1 }}>←</span>
+      Back
+    </button>
+  );
+}
+
 import { SECRETAI_KEY_STORAGE_KEY } from "@/components/ui/GoogleSignInButton";
 import FoundryNav from "@/components/homepage/foundry/FoundryNav";
 import { StatusPill, type StatusKind } from "@/components/StatusPill";
@@ -412,6 +428,7 @@ export default function CreateAgentPage() {
 
       <main className="mx-auto max-w-3xl px-6 py-10">
         <div className="mb-8">
+          <BackButton />
           <span className="fh__eyebrow">New deployment</span>
           <h1
             className="mt-1 text-2xl font-semibold tracking-tight"
