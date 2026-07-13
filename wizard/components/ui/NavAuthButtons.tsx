@@ -27,6 +27,12 @@ export function NavAuthButtons({ size = "sm" }: NavAuthButtonsProps) {
 
     return (
       <div className="flex items-center gap-2">
+        <Link
+          href="/agents"
+          className={`${base} border border-[var(--bronze)] text-[var(--cast-dim)] hover:text-[var(--cast)]`}
+        >
+          Dashboard
+        </Link>
         {avatar ? (
           <Image
             src={avatar}
@@ -43,12 +49,6 @@ export function NavAuthButtons({ size = "sm" }: NavAuthButtonsProps) {
             {initials}
           </div>
         )}
-        <Link
-          href="/agents"
-          className={`${base} border border-[var(--bronze)] text-[var(--cast-dim)] hover:text-[var(--cast)]`}
-        >
-          Dashboard
-        </Link>
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/" })}
