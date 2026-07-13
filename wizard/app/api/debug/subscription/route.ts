@@ -35,7 +35,7 @@ export async function GET() {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json", "Authorization": authHeader() },
       body: JSON.stringify({
-        planName: "SecretForge Pro",
+        name: "SecretForge Pro",
         currency: "USD",
         recurringChargeAmount: 29,
         chargeFrequency: "MONTHLY",

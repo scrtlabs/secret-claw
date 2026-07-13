@@ -93,7 +93,7 @@ async function createProPlan(): Promise<string | null> {
     "/services/2/recurring/plans",
     "POST",
     {
-      planName: "SecretForge Pro",
+      name: "SecretForge Pro",
       currency: "USD",
       recurringChargeAmount: PRO_PLAN_PRICE,
       chargeFrequency: "MONTHLY",
