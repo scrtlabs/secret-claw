@@ -24,6 +24,12 @@ function fmt(iso: string | null): string {
   });
 }
 
+function daysLeft(iso: string | null): number {
+  if (!iso) return 0;
+  const ms = new Date(iso).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
 function StatusBadge({ status }: { status: SubData["status"] }) {
   const map: Record<SubData["status"], { label: string; color: string; bg: string }> = {
     trialing:  { label: "Trial",    color: "var(--verify)",  bg: "rgba(56,161,105,0.12)" },
@@ -168,10 +174,30 @@ export default function ProfilePage() {
 
               {/* Details */}
               <div className="flex flex-col gap-2">
-                {sub.status === "trialing" && sub.trialEndsAt && (
-                  <Row label="Trial ends" value={fmt(sub.trialEndsAt)} />
-                )}
-                {sub.currentPeriodEnd && sub.status !== "canceled" && (
+                {sub.status === "trialing" && sub.trialEndsAt && (() => {
+                  const left = daysLeft(sub.trialEndsAt);
+                  const pct = Math.min(100, Math.round(((7 - left) / 7) * 100));
+                  return (
+                    <div className="flex flex-col gap-2 rounded-[10px] border p-3" style={{ background: "rgba(56,161,105,0.05)", borderColor: "rgba(56,161,105,0.2)" }}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span style={{ color: "var(--cast-dim)" }}>Trial period</span>
+                        <span className="font-semibold" style={{ color: "var(--verify)" }}>
+                          {left === 0 ? "Ends today" : `${left} day${left === 1 ? "" : "s"} left`}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${pct}%`, background: left <= 1 ? "#ef4444" : left <= 2 ? "var(--ember2)" : "var(--verify)" }}
+                        />
+                      </div>
+                      <p className="text-xs" style={{ color: "var(--cast-dimmer)" }}>
+                        Ends {fmt(sub.trialEndsAt)} · $29/month after trial
+                      </p>
+                    </div>
+                  );
+                })()}
+                {sub.currentPeriodEnd && sub.status !== "canceled" && sub.status !== "trialing" && (
                   <Row
                     label={sub.cancelAtPeriodEnd ? "Access until" : "Next renewal"}
                     value={fmt(sub.currentPeriodEnd)}
