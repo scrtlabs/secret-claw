@@ -4,6 +4,9 @@ import { getSessionUser } from "@/lib/auth/session";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   return NextResponse.json({
     portal_link_encryption_key_set: !!process.env.PORTAL_LINK_ENCRYPTION_KEY,
     portal_link_encryption_key_length: (process.env.PORTAL_LINK_ENCRYPTION_KEY ?? "").length,

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { render } from "@/lib/render";
 import { createVm, getJobStatus } from "@/lib/portal-client";
 import { resolvePortalApiKey } from "@/lib/portal-link/resolve";
+import { getSessionUser } from "@/lib/auth/session";
 import {
   isDemoMode,
   DEMO_BOT_USERNAME,
@@ -33,6 +34,11 @@ const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 // from `@vercel/functions`. We are not deploying to Vercel for the demo;
 // switching back is a one-line change if/when that decision reverses.
 export async function POST(request: Request) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let body: FormSubmission;
   try {
     body = (await request.json()) as FormSubmission;
