@@ -10,6 +10,7 @@ export async function GET() {
     portal_sync_secret_typeof: typeof process.env.PORTAL_SYNC_SECRET,
     portal_sync_secret_length: (process.env.PORTAL_SYNC_SECRET ?? "").length,
     portal_base_url: process.env.PORTAL_BASE_URL ?? process.env.SECRETAI_PORTAL_URL ?? "(not set)",
+    secretvm_type_id: process.env.SECRETVM_TYPE_ID ?? "(not set — will send 'default')",
     enabled: !!(process.env.PORTAL_LINK_ENCRYPTION_KEY && process.env.PORTAL_SYNC_SECRET),
   });
 }
