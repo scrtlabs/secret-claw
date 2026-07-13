@@ -286,8 +286,8 @@ export default function SubscribePage() {
                 </div>
               </div>
 
-              {/* BlueSnap HPF fields */}
-              {stage === "loading" || !sdkReady ? (
+              {/* BlueSnap HPF fields — must be in DOM before init() is called */}
+              {!pfToken || !sdkReady ? (
                 <div className="flex flex-col gap-3">
                   {[1, 2].map((i) => (
                     <div
