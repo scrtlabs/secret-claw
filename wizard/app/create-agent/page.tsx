@@ -203,6 +203,7 @@ export default function CreateAgentPage() {
   const anthropicValid = tier === "secret" ? true : anthropicState.kind === "valid";
   const telegramValid =
     telegramChoice === "skipped" || (telegramChoice === "enabled" && telegramState.kind === "valid");
+  const canForge = secretaiValid && anthropicValid && telegramValid;
 
   function firstInvalidId(): string | null {
     if (!secretaiValid) return "section-secretai";
@@ -491,9 +492,6 @@ export default function CreateAgentPage() {
                   {portalLink.balance !== undefined ? (
                     <span style={{ color: "var(--ember2)" }}> · balance ${portalLink.balance.toFixed(2)}</span>
                   ) : null}
-                  <p className="mt-0.5 text-[11px]" style={{ color: "var(--cast-dimmer)" }}>
-                    API key loaded automatically — nothing to paste.
-                  </p>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -755,8 +753,8 @@ export default function CreateAgentPage() {
               ) : null}
               <button
                 type="submit"
-                disabled={submitting}
-                className={`fgbtn self-start ${submitting ? "fgbtn--idle" : ""}`}
+                disabled={submitting || !canForge}
+                className={`fgbtn self-start ${submitting || !canForge ? "fgbtn--idle" : ""}`}
                 onClick={() => void onSubmit()}
               >
                 {submitting ? (

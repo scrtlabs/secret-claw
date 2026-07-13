@@ -14,65 +14,29 @@ interface StatusPillProps {
   className?: string;
 }
 
-const PRESET: Record<StatusKind, { dot: string; bg: string; text: string; label: string }> = {
-  idle: {
-    dot: "bg-portal-mutedDim",
-    bg: "bg-portal-surface2",
-    text: "text-portal-muted",
-    label: "Idle",
-  },
-  validating: {
-    dot: "bg-portal-amber animate-pulse",
-    bg: "bg-portal-amber/10",
-    text: "text-portal-amber",
-    label: "Validating…",
-  },
-  valid: {
-    dot: "bg-portal-green",
-    bg: "bg-portal-green/10",
-    text: "text-portal-green",
-    label: "Valid",
-  },
-  invalid: {
-    dot: "bg-portal-red",
-    bg: "bg-portal-red/10",
-    text: "text-portal-red",
-    label: "Invalid",
-  },
-  submitted: {
-    dot: "bg-portal-amber",
-    bg: "bg-portal-amber/10",
-    text: "text-portal-amber",
-    label: "Submitted",
-  },
-  provisioning: {
-    dot: "bg-portal-amber animate-pulse",
-    bg: "bg-portal-amber/10",
-    text: "text-portal-amber",
-    label: "Provisioning",
-  },
-  ready: {
-    dot: "bg-portal-green",
-    bg: "bg-portal-green/10",
-    text: "text-portal-green",
-    label: "Running",
-  },
-  failed: {
-    dot: "bg-portal-red",
-    bg: "bg-portal-red/10",
-    text: "text-portal-red",
-    label: "Failed",
-  },
+const PRESET: Record<StatusKind, { dot: string; bg: string; text: string; label: string; pulse?: boolean }> = {
+  idle:         { dot: "var(--cast-dimmer)", bg: "rgba(58,46,38,0.4)",   text: "var(--cast-dim)",   label: "Idle" },
+  validating:   { dot: "var(--ember2)",      bg: "rgba(255,176,32,0.1)", text: "var(--ember2)",     label: "Validating…", pulse: true },
+  valid:        { dot: "var(--verify)",      bg: "rgba(0,224,138,0.1)",  text: "var(--verify)",     label: "Valid" },
+  invalid:      { dot: "#ef4444",            bg: "rgba(239,68,68,0.1)",  text: "#ef4444",           label: "Invalid" },
+  submitted:    { dot: "var(--ember2)",      bg: "rgba(255,176,32,0.1)", text: "var(--ember2)",     label: "Submitted" },
+  provisioning: { dot: "var(--molten)",      bg: "rgba(255,122,24,0.1)", text: "var(--molten)",     label: "Provisioning", pulse: true },
+  ready:        { dot: "var(--verify)",      bg: "rgba(0,224,138,0.1)",  text: "var(--verify)",     label: "Running" },
+  failed:       { dot: "#ef4444",            bg: "rgba(239,68,68,0.1)",  text: "#ef4444",           label: "Failed" },
 };
 
 export function StatusPill({ kind, label, className }: StatusPillProps) {
-  const preset = PRESET[kind];
+  const p = PRESET[kind];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${preset.bg} ${preset.text} ${className || ""}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium font-mono tracking-wide ${className || ""}`}
+      style={{ background: p.bg, color: p.text }}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${preset.dot}`} />
-      {label || preset.label}
+      <span
+        className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${p.pulse ? "animate-pulse" : ""}`}
+        style={{ background: p.dot }}
+      />
+      {label || p.label}
     </span>
   );
 }

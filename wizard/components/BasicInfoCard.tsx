@@ -12,15 +12,33 @@ interface BasicInfoCardProps {
 
 export function BasicInfoCard({ title, rows, className }: BasicInfoCardProps) {
   return (
-    <div className={`rounded-lg border border-portal-border bg-portal-surface p-5 ${className || ""}`}>
-      {title ? (
-        <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-portal-muted">{title}</h3>
-      ) : null}
+    <div
+      className={`rounded-[14px] border p-5 ${className || ""}`}
+      style={{ background: "linear-gradient(180deg, #1a1613, #141110)", borderColor: "var(--bronze)" }}
+    >
+      {title && (
+        <h3
+          className="mb-4 text-[11px] font-semibold uppercase tracking-widest"
+          style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+        >
+          {title}
+        </h3>
+      )}
       <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
         {rows.map((row) => (
           <div key={row.label} className="flex flex-col gap-1">
-            <dt className="text-[11px] uppercase tracking-wider text-portal-muted">{row.label}</dt>
-            <dd className={`break-all text-sm text-portal-text ${row.mono ? "font-mono" : ""}`}>{row.value}</dd>
+            <dt
+              className="text-[10px] uppercase tracking-widest"
+              style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+            >
+              {row.label}
+            </dt>
+            <dd
+              className={`break-all text-sm ${row.mono ? "font-mono" : ""}`}
+              style={{ color: "var(--cast)" }}
+            >
+              {row.value}
+            </dd>
           </div>
         ))}
       </dl>

@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-import { PortalHeader } from "@/components/PortalHeader";
+import FoundryNav from "@/components/homepage/foundry/FoundryNav";
+import FoundryFooter from "@/components/homepage/foundry/FoundryFooter";
 import { StatusPill } from "@/components/StatusPill";
 import { TabBar } from "@/components/TabBar";
 import { BasicInfoCard } from "@/components/BasicInfoCard";
 import { GatewayTokenDisplay } from "@/components/GatewayTokenDisplay";
 import { LogsViewer } from "@/components/LogsViewer";
-import { SecondaryButton } from "@/components/SecondaryButton";
 import type { DeploymentRecord } from "@/lib/types";
 
 const POLL_INTERVAL_MS = 3000;
@@ -44,6 +44,28 @@ function formatElapsed(ms: number): string {
   return `${m}m ${s.toString().padStart(2, "0")}s`;
 }
 
+function ForgeCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={`rounded-[14px] border p-5 ${className || ""}`}
+      style={{ background: "linear-gradient(180deg, #1a1613, #141110)", borderColor: "var(--bronze)" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h3
+      className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
+      style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+    >
+      {children}
+    </h3>
+  );
+}
+
 export default function AgentDetailPage({ params }: PageProps) {
   const deploymentId = params.deployment_id;
   const [record, setRecord] = useState<DeploymentRecord | null>(null);
@@ -55,18 +77,12 @@ export default function AgentDetailPage({ params }: PageProps) {
     let cancelled = false;
     async function poll() {
       try {
-        // Pull the user's SecretAI key from sessionStorage (stashed by
-        // create-agent on submit) and send it as a Bearer token. The
-        // status route uses it to refresh provisioning state from the
-        // portal on-demand. Polls without the key still work but the
-        // record won't transition off "provisioning" until the user
-        // navigates back from a tab that has the key.
         const headers: Record<string, string> = {};
         try {
           const apiKey = sessionStorage.getItem(`secret-claw:apikey:${deploymentId}`);
           if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
         } catch {
-          // sessionStorage blocked — skip the header.
+          // sessionStorage blocked
         }
         const res = await fetch(`/api/deployment-status/${encodeURIComponent(deploymentId)}`, {
           cache: "no-store",
@@ -80,7 +96,7 @@ export default function AgentDetailPage({ params }: PageProps) {
         const body = (await res.json()) as DeploymentRecord;
         if (!cancelled) setRecord(body);
       } catch {
-        // ignore — next poll will try again
+        // ignore — next poll will retry
       }
     }
     void poll();
@@ -102,32 +118,36 @@ export default function AgentDetailPage({ params }: PageProps) {
 
   if (notFound) {
     return (
-      <div className="min-h-screen">
-        <PortalHeader pageTitle="Agent not found" />
-        <main className="mx-auto max-w-3xl px-6 py-10">
-          <h1 className="text-xl font-semibold">Deployment not found</h1>
-          <p className="mt-2 text-sm text-portal-muted">
-            We can't find a deployment with that ID. It may have been lost on dev-server restart
-            (the in-memory store is wiped on restart).
-          </p>
-          <Link
-            href="/create-agent"
-            className="mt-6 inline-block text-sm text-portal-accent hover:underline"
-          >
-            ← Create a new agent
-          </Link>
+      <div className="fg-page">
+        <FoundryNav />
+        <main className="mx-auto max-w-3xl px-6 py-16">
+          <ForgeCard>
+            <p className="text-sm font-semibold" style={{ color: "var(--ember1)" }}>Deployment not found</p>
+            <p className="mt-2 text-sm" style={{ color: "var(--cast-dim)" }}>
+              We can&apos;t find a deployment with that ID. It may have been lost on server restart.
+            </p>
+            <Link
+              href="/create-agent"
+              className="mt-5 inline-block text-sm font-medium transition-colors"
+              style={{ color: "var(--ember2)" }}
+            >
+              ← Forge a new agent
+            </Link>
+          </ForgeCard>
         </main>
+        <FoundryFooter />
       </div>
     );
   }
 
   if (!record) {
     return (
-      <div className="min-h-screen">
-        <PortalHeader pageTitle="Loading…" />
-        <main className="mx-auto max-w-3xl px-6 py-10">
-          <p className="text-sm text-portal-muted">Loading deployment…</p>
+      <div className="fg-page">
+        <FoundryNav />
+        <main className="mx-auto max-w-3xl px-6 py-16">
+          <p className="text-sm" style={{ color: "var(--cast-dim)" }}>Loading deployment…</p>
         </main>
+        <FoundryFooter />
       </div>
     );
   }
@@ -140,13 +160,23 @@ export default function AgentDetailPage({ params }: PageProps) {
     elapsedMs > LONG_PROVISIONING_THRESHOLD_MS;
 
   return (
-    <div className="min-h-screen">
-      <PortalHeader pageTitle={`Secret Agent`} />
+    <div className="fg-page">
+      <FoundryNav />
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+
+        {/* Header */}
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-portal-text">Secret Agent</h1>
-            <p className="mt-1 font-mono text-[11px] text-portal-muted">{deploymentId}</p>
+            <p
+              className="mb-1 text-[11px] uppercase tracking-widest"
+              style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+            >
+              Secret Agent
+            </p>
+            <h1 className="text-2xl font-black tracking-tight" style={{ color: "var(--cast)" }}>
+              {deploymentId.split("-")[0]}
+              <span style={{ color: "var(--cast-dimmer)" }}>-{deploymentId.split("-").slice(1).join("-")}</span>
+            </h1>
           </div>
           <StatusPill kind={record.status} />
         </div>
@@ -162,72 +192,61 @@ export default function AgentDetailPage({ params }: PageProps) {
         />
 
         {tab === "overview" ? (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             <BasicInfoCard
-              title="Basic info"
+              title="Configuration"
               rows={[
-                { label: "Agent name", value: "Secret Agent" },
-                {
-                  label: "Runtime",
-                  value: record.runtime === "hermes" ? "Hermes Agent v0.14" : "OpenClaw",
-                },
-                {
-                  label: "Tier",
-                  value: record.tier === "secret" ? "Secret (SecretAI)" : "BYO API",
-                },
+                { label: "Runtime", value: record.runtime === "hermes" ? "Hermes Agent v0.14" : "OpenClaw" },
+                { label: "Tier", value: record.tier === "secret" ? "SecretAI" : "BYO API" },
                 {
                   label: "Model",
-                  value:
-                    record.tier === "secret"
-                      ? (record.secretai_model || "gemma4:31b")
-                      : "Claude Sonnet 4.6",
+                  value: record.tier === "secret" ? (record.secretai_model || "gemma4:31b") : "Claude Sonnet 4.6",
                   mono: true,
                 },
-                {
-                  label: "Telegram",
-                  value: record.telegram_enabled ? "Connected" : "Skipped",
-                },
-                {
-                  label: "Created",
-                  value: new Date(record.created_at).toLocaleString(),
-                },
-                {
-                  label: "Deployment ID",
-                  value: <span className="font-mono text-xs">{deploymentId}</span>,
-                  mono: true,
-                },
+                { label: "Telegram", value: record.telegram_enabled ? "Connected" : "Skipped" },
+                { label: "Created", value: new Date(record.created_at).toLocaleString() },
+                { label: "Deployment ID", value: <span className="font-mono text-xs">{deploymentId}</span>, mono: true },
               ]}
             />
 
-            {record.status === "submitted" || record.status === "provisioning" ? (
-              <div className="flex flex-col gap-3 rounded-lg border border-portal-border bg-portal-surface p-5">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-portal-text">
+            {(record.status === "submitted" || record.status === "provisioning") && (
+              <ForgeCard>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium" style={{ color: "var(--cast)" }}>
                     {phaseLabel(elapsedSec, record.status)}
                   </span>
-                  <span className="text-xs text-portal-muted">{formatElapsed(elapsedMs)} elapsed</span>
+                  <span
+                    className="text-xs font-mono"
+                    style={{ color: "var(--cast-dimmer)" }}
+                  >
+                    {formatElapsed(elapsedMs)}
+                  </span>
                 </div>
-                <div className="h-1 w-full overflow-hidden rounded-full bg-portal-bg">
-                  <div className="h-full w-1/3 animate-pulse bg-portal-accent" />
+                <div className="h-0.5 w-full overflow-hidden rounded-full" style={{ background: "var(--bronze)" }}>
+                  <div
+                    className="h-full w-1/3 animate-pulse rounded-full"
+                    style={{ background: "linear-gradient(90deg, var(--ember1), var(--ember2))" }}
+                  />
                 </div>
-                {longWait ? (
-                  <p className="text-xs text-portal-amber">
+                {longWait && (
+                  <p className="mt-3 text-xs" style={{ color: "var(--ember2)" }}>
                     Taking longer than usual — provisioning typically completes within ~5 minutes.
                     Logs will appear in the Logs tab once the agent boots.
                   </p>
-                ) : null}
-              </div>
-            ) : null}
+                )}
+              </ForgeCard>
+            )}
 
-            {record.status === "ready" ? (
+            {record.status === "ready" && (
               <>
-                <div className="rounded-lg border border-portal-border bg-portal-surface p-5">
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-portal-muted">
-                    Access
-                  </h3>
+                <ForgeCard>
+                  <SectionLabel>Access</SectionLabel>
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1">
-                      <span className="text-[11px] uppercase tracking-wider text-portal-muted">
+                      <span
+                        className="text-[10px] uppercase tracking-widest"
+                        style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+                      >
                         Agent URL
                       </span>
                       {record.vm_hostname ? (
@@ -235,93 +254,113 @@ export default function AgentDetailPage({ params }: PageProps) {
                           href={`https://${record.vm_hostname}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="break-all font-mono text-sm text-portal-accent hover:underline"
+                          className="break-all font-mono text-sm transition-colors hover:underline"
+                          style={{ color: "var(--ember2)" }}
                         >
                           https://{record.vm_hostname}
                         </a>
                       ) : (
-                        <span className="text-sm text-portal-muted">(awaiting hostname)</span>
+                        <span className="text-sm" style={{ color: "var(--cast-dimmer)" }}>(awaiting hostname)</span>
                       )}
                     </div>
-                    {record.gateway_token && record.runtime !== "hermes" ? (
+                    {record.gateway_token && record.runtime !== "hermes" && (
                       <div className="flex flex-col gap-1">
-                        <span className="text-[11px] uppercase tracking-wider text-portal-muted">
+                        <span
+                          className="text-[10px] uppercase tracking-widest"
+                          style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+                        >
                           Gateway token
                         </span>
                         <GatewayTokenDisplay token={record.gateway_token} />
                       </div>
-                    ) : null}
-                    {record.telegram_enabled && record.telegram_bot_username ? (
+                    )}
+                    {record.telegram_enabled && record.telegram_bot_username && (
                       <div className="flex flex-col gap-1">
-                        <span className="text-[11px] uppercase tracking-wider text-portal-muted">
+                        <span
+                          className="text-[10px] uppercase tracking-widest"
+                          style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+                        >
                           Telegram bot
                         </span>
                         <a
                           href={`https://t.me/${record.telegram_bot_username}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="font-mono text-sm text-portal-accent hover:underline"
+                          className="font-mono text-sm transition-colors hover:underline"
+                          style={{ color: "var(--ember2)" }}
                         >
                           @{record.telegram_bot_username}
                         </a>
                       </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-portal-border bg-portal-surface p-5">
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-portal-muted">
-                    What to do next
-                  </h3>
-                  <ul className="flex list-disc flex-col gap-2 pl-5 text-sm text-portal-text">
-                    <li>
-                      {record.runtime === "hermes"
-                        ? "Open the agent URL above to reach the Hermes dashboard and chat with your agent through the web UI."
-                        : "Open the agent URL above and authenticate with the gateway token to chat with your agent through the web UI."}
-                    </li>
-                    {record.telegram_enabled ? (
-                      <li>
-                        Your agent will message you on Telegram within about a minute with a welcome
-                        note. Tomorrow at 13:00 UTC you'll receive your first daily news briefing;
-                        21:00 UTC brings the evening crypto summary.
-                      </li>
-                    ) : (
-                      <li>
-                        Telegram is skipped — your agent is reachable only via the web URL. You can
-                        add Telegram later by editing the agent's config through the web UI.
-                      </li>
                     )}
-                    <li>
-                      Manage the underlying VM (resources, attestation, compose file) directly in
-                      the{" "}
+                  </div>
+                </ForgeCard>
+
+                <ForgeCard>
+                  <SectionLabel>What to do next</SectionLabel>
+                  <ul className="flex flex-col gap-3">
+                    {[
+                      record.runtime === "hermes"
+                        ? "Open the agent URL above to reach the Hermes dashboard and chat with your agent through the web UI."
+                        : "Open the agent URL above and authenticate with the gateway token to chat with your agent through the web UI.",
+                      record.telegram_enabled
+                        ? "Your agent will message you on Telegram within about a minute with a welcome note. Tomorrow at 13:00 UTC you'll receive your first daily news briefing; 21:00 UTC brings the evening crypto summary."
+                        : "Telegram is skipped — your agent is reachable only via the web URL. You can add Telegram later by editing the agent's config through the web UI.",
+                    ].map((text, i) => (
+                      <li key={i} className="flex gap-3 text-sm" style={{ color: "var(--cast-dim)" }}>
+                        <span
+                          className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-sm"
+                          style={{ background: "var(--molten)" }}
+                        />
+                        {text}
+                      </li>
+                    ))}
+                    <li className="flex gap-3 text-sm" style={{ color: "var(--cast-dim)" }}>
+                      <span
+                        className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-sm"
+                        style={{ background: "var(--molten)" }}
+                      />
+                      Manage the underlying VM (resources, attestation, compose file) directly in the{" "}
                       <a
                         href="https://secretai.scrtlabs.com"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-portal-accent hover:underline"
+                        className="hover:underline"
+                        style={{ color: "var(--ember2)" }}
                       >
-                        SecretAI portal
+                        SecretAI portal ↗
                       </a>
-                      .
                     </li>
                   </ul>
-                </div>
+                </ForgeCard>
               </>
-            ) : null}
+            )}
 
-            {record.status === "failed" ? (
-              <div className="rounded-lg border border-portal-red/40 bg-portal-red/5 p-5">
-                <h3 className="mb-2 text-sm font-semibold text-portal-red">Provisioning failed</h3>
-                <p className="text-xs text-portal-muted">
+            {record.status === "failed" && (
+              <div
+                className="rounded-[14px] border p-5"
+                style={{
+                  background: "rgba(242,96,12,0.05)",
+                  borderColor: "rgba(242,96,12,0.3)",
+                }}
+              >
+                <p className="text-sm font-semibold mb-2" style={{ color: "var(--ember1)" }}>
+                  Provisioning failed
+                </p>
+                <p className="text-xs" style={{ color: "var(--cast-dim)" }}>
                   {record.error_message || "An unknown error occurred during provisioning."}
                 </p>
                 <div className="mt-4">
-                  <Link href="/create-agent">
-                    <SecondaryButton>Try again</SecondaryButton>
+                  <Link
+                    href="/create-agent"
+                    className="fgbtn inline-block text-sm"
+                    style={{ padding: "10px 20px", fontSize: "14px" }}
+                  >
+                    Try again
                   </Link>
                 </div>
               </div>
-            ) : null}
+            )}
           </div>
         ) : (
           <LogsViewer
@@ -331,6 +370,7 @@ export default function AgentDetailPage({ params }: PageProps) {
           />
         )}
       </main>
+      <FoundryFooter />
     </div>
   );
 }
