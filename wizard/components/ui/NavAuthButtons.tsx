@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,6 +11,18 @@ interface NavAuthButtonsProps {
 
 export function NavAuthButtons({ size = "sm" }: NavAuthButtonsProps) {
   const { data: session, status } = useSession();
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onPointerDown(e: PointerEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, []);
 
   const base =
     size === "sm"
@@ -33,29 +46,65 @@ export function NavAuthButtons({ size = "sm" }: NavAuthButtonsProps) {
         >
           Dashboard
         </Link>
-        {avatar ? (
-          <Image
-            src={avatar}
-            alt={name}
-            width={28}
-            height={28}
-            className="rounded-full border border-[var(--bronze)]"
-          />
-        ) : (
-          <div
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--bronze)] text-xs font-bold"
-            style={{ background: "var(--forge)", color: "var(--cast)" }}
+
+        {/* Avatar + dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            type="button"
+            aria-label="Account menu"
+            aria-expanded={open}
+            onClick={() => setOpen((o) => !o)}
+            className="flex items-center focus:outline-none"
           >
-            {initials}
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => signOut({ callbackUrl: "/" })}
-          className={`${base} border border-[var(--bronze)] text-[var(--cast-dim)] hover:text-[var(--cast)]`}
-        >
-          Sign out
-        </button>
+            {avatar ? (
+              <Image
+                src={avatar}
+                alt={name}
+                width={28}
+                height={28}
+                className="rounded-full border border-[var(--bronze)] cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            ) : (
+              <div
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--bronze)] text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity"
+                style={{ background: "var(--forge)", color: "var(--cast)" }}
+              >
+                {initials}
+              </div>
+            )}
+          </button>
+
+          {open && (
+            <div
+              className="absolute right-0 top-9 z-50 min-w-[160px] rounded-[10px] border py-1 shadow-xl"
+              style={{ background: "#1a1613", borderColor: "var(--bronze)" }}
+            >
+              <div
+                className="px-4 py-2 text-[11px] truncate"
+                style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+              >
+                {session?.user?.email ?? name}
+              </div>
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", margin: "2px 0" }} />
+              <Link
+                href="/profile"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 text-sm transition-colors hover:bg-white/5"
+                style={{ color: "var(--cast-dim)" }}
+              >
+                Profile
+              </Link>
+              <button
+                type="button"
+                onClick={() => { setOpen(false); signOut({ callbackUrl: "/" }); }}
+                className="block w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/5"
+                style={{ color: "var(--cast-dim)" }}
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
