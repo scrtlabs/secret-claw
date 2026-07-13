@@ -19,7 +19,7 @@ function bsEnv(): "sandbox" | "production" {
   return process.env.BLUESNAP_ENV === "production" ? "production" : "sandbox";
 }
 
-function apiBase(): string {
+export function apiBase(): string {
   return bsEnv() === "production"
     ? "https://ws.bluesnap.com"
     : "https://sandbox.bluesnap.com";
@@ -31,7 +31,7 @@ export function sdkUrl(): string {
     : "https://sandpay.bluesnap.com/web-sdk/5/bluesnap.js";
 }
 
-function authHeader(): string {
+export function authHeader(): string {
   const u = process.env.BLUESNAP_API_USERNAME ?? "";
   const p = process.env.BLUESNAP_API_PASSWORD ?? "";
   return `Basic ${Buffer.from(`${u}:${p}`).toString("base64")}`;
