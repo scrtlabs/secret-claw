@@ -170,6 +170,9 @@ export default function CreateAgentPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showInvalidHighlights, setShowInvalidHighlights] = useState(false);
 
+  // "loading" while we check | "active" | "none"
+  const [subscriptionStatus, setSubscriptionStatus] = useState<"loading" | "active" | "none">("loading");
+
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -191,6 +194,13 @@ export default function CreateAgentPage() {
     } catch {
       // Malformed/absent query string; keep defaults.
     }
+    void fetch("/api/subscription")
+      .then((r) => r.json())
+      .then((d: { active?: boolean }) => {
+        setSubscriptionStatus(d.active ? "active" : "none");
+      })
+      .catch(() => setSubscriptionStatus("none"));
+
     void (async () => {
       try {
         const res = await fetch("/api/portal-link");
@@ -219,7 +229,7 @@ export default function CreateAgentPage() {
   const anthropicValid = tier === "secret" ? true : anthropicState.kind === "valid";
   const telegramValid =
     telegramChoice === "skipped" || (telegramChoice === "enabled" && telegramState.kind === "valid");
-  const canForge = secretaiValid && anthropicValid && telegramValid;
+  const canForge = secretaiValid && anthropicValid && telegramValid && subscriptionStatus === "active";
 
   function firstInvalidId(): string | null {
     if (!secretaiValid) return "section-secretai";
@@ -765,6 +775,22 @@ export default function CreateAgentPage() {
 
           <SectionShell id="section-submit" index={5} title="Forge your agent">
             <div className="flex flex-col gap-3">
+              {subscriptionStatus === "none" && (
+                <div
+                  className="rounded-[10px] border p-4"
+                  style={{ background: "rgba(255,122,24,0.06)", borderColor: "rgba(255,122,24,0.3)" }}
+                >
+                  <p className="text-sm font-semibold mb-1" style={{ color: "var(--ember2)" }}>
+                    Pro subscription required
+                  </p>
+                  <p className="text-xs mb-3" style={{ color: "var(--cast-dim)" }}>
+                    Deploy agents with a SecretForge Pro plan. 7-day free trial, $29/month after.
+                  </p>
+                  <a href="/subscribe" className="fgbtn inline-block" style={{ padding: "10px 20px", fontSize: "13px" }}>
+                    Start free trial →
+                  </a>
+                </div>
+              )}
               {submitError ? (
                 <p className="text-xs text-red-400">{submitError}</p>
               ) : null}

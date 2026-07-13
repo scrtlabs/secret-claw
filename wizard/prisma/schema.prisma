@@ -19,18 +19,42 @@ model PortalLink {
 }
 
 model User {
-  id                       String    @id @default(cuid())
-  email                    String    @unique
-  sub                      String    @unique
+  id                       String        @id @default(cuid())
+  email                    String        @unique
+  sub                      String        @unique
   passwordHash             String?
-  emailConfirmed           Boolean   @default(false)
-  emailConfirmationToken   String?   @unique
+  emailConfirmed           Boolean       @default(false)
+  emailConfirmationToken   String?       @unique
   emailConfirmationExpires DateTime?
-  passwordResetToken       String?   @unique
+  passwordResetToken       String?       @unique
   passwordResetExpires     DateTime?
-  createdAt                DateTime  @default(now())
-  lastLogin                DateTime  @updatedAt
-  agents                   Agent[]   @relation("UserAgents")
+  createdAt                DateTime      @default(now())
+  lastLogin                DateTime      @updatedAt
+  agents                   Agent[]       @relation("UserAgents")
+  subscription             Subscription?
+}
+
+model Subscription {
+  id                      String    @id @default(cuid())
+  userSub                 String    @unique
+  bluesnapSubscriptionId  String    @unique
+  bluesnapVaultedShopperId String?
+  planId                  String
+  // trialing | active | past_due | canceled
+  status                  String
+  trialEndsAt             DateTime?
+  currentPeriodEnd        DateTime?
+  cancelAtPeriodEnd       Boolean   @default(false)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  user                    User      @relation(fields: [userSub], references: [sub])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 model Agent {

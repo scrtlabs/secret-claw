@@ -6,6 +6,7 @@ import { render } from "@/lib/render";
 import { createVm, getJobStatus } from "@/lib/portal-client";
 import { resolvePortalApiKey } from "@/lib/portal-link/resolve";
 import { getSessionUser } from "@/lib/auth/session";
+import { isSubscriptionActive } from "@/lib/subscription";
 import {
   isDemoMode,
   DEMO_BOT_USERNAME,
@@ -37,6 +38,13 @@ export async function POST(request: Request) {
   const sessionUser = await getSessionUser();
   if (!sessionUser) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isDemoMode() && !(await isSubscriptionActive(sessionUser.sub))) {
+    return NextResponse.json(
+      { error: "subscription_required", message: "An active Pro subscription is required to deploy agents." },
+      { status: 402 },
+    );
   }
 
   let body: FormSubmission;
