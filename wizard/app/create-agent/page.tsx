@@ -24,6 +24,8 @@ import FoundryNav from "@/components/homepage/foundry/FoundryNav";
 import { StatusPill, type StatusKind } from "@/components/StatusPill";
 import { SECRETAI_MODELS, DEFAULT_SECRETAI_MODEL } from "@/lib/types";
 
+interface AiModel { key: string; name: string; }
+
 type ValidationState = {
   kind: StatusKind;
   message?: string;
@@ -166,6 +168,8 @@ export default function CreateAgentPage() {
   const [portalLink, setPortalLink] = useState<PortalLinkInfo | null>(null);
   const [syncing, setSyncing] = useState(false);
 
+  const [aiModels, setAiModels] = useState<AiModel[] | null>(null);
+
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showInvalidHighlights, setShowInvalidHighlights] = useState(false);
@@ -200,6 +204,19 @@ export default function CreateAgentPage() {
         setSubscriptionStatus(d.active ? "active" : "none");
       })
       .catch(() => setSubscriptionStatus("none"));
+
+    void fetch("/api/aimodels")
+      .then((r) => r.json())
+      .then((d: { models?: AiModel[] }) => {
+        if (d.models && d.models.length > 0) {
+          setAiModels(d.models);
+          setSecretaiModel((prev) => {
+            const ids = d.models!.map((m) => m.key);
+            return ids.includes(prev) ? prev : d.models![0].key;
+          });
+        }
+      })
+      .catch(() => { /* keep const fallback */ });
 
     void (async () => {
       try {
@@ -636,8 +653,8 @@ export default function CreateAgentPage() {
                     color: "var(--cast)",
                   }}
                 >
-                  {SECRETAI_MODELS.map((m) => (
-                    <option key={m.id} value={m.id}>{m.label}</option>
+                  {(aiModels ?? SECRETAI_MODELS.map((m) => ({ key: m.id, name: m.label }))).map((m) => (
+                    <option key={m.key} value={m.key}>{m.name}</option>
                   ))}
                 </select>
                 <p className="text-[11px] leading-relaxed" style={{ color: "var(--cast-dimmer)" }}>
