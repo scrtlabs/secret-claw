@@ -347,6 +347,8 @@ body {
   --secret-red: #fb2011;
   --grad: linear-gradient(100deg, var(--ember2) 0%, var(--molten) 40%, var(--secret-red) 70%);
   position: relative;
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   color: var(--cast);
   font-family: var(--font-archivo), system-ui, sans-serif;
@@ -354,6 +356,9 @@ body {
     radial-gradient(90% 60% at 82% 22%, rgba(255, 122, 24, 0.06), transparent 55%),
     radial-gradient(90% 70% at 10% 78%, rgba(242, 96, 12, 0.07), transparent 60%),
     linear-gradient(180deg, #0c0a09 0%, #100e0c 50%, #0c0a09 100%);
+}
+.fg-page > main {
+  flex: 1;
 }
 /* fine metal grain over the whole page, matching the hero */
 .fg-page::before {

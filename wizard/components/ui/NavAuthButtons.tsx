@@ -43,6 +43,12 @@ export function NavAuthButtons({ size = "sm" }: NavAuthButtonsProps) {
             {initials}
           </div>
         )}
+        <Link
+          href="/agents"
+          className={`${base} border border-[var(--bronze)] text-[var(--cast-dim)] hover:text-[var(--cast)]`}
+        >
+          Dashboard
+        </Link>
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/" })}
