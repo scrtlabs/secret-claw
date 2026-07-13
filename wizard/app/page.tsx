@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import HeroManifest from "@/components/homepage/HeroManifest";
 import FoundryNav from "@/components/homepage/foundry/FoundryNav";
 import FoundryWhy from "@/components/homepage/foundry/FoundryWhy";
@@ -7,12 +6,6 @@ import FoundryDeploy from "@/components/homepage/foundry/FoundryDeploy";
 import FoundryFooter from "@/components/homepage/foundry/FoundryFooter";
 import RevealInit from "@/components/homepage/foundry/RevealInit";
 
-export const metadata: Metadata = {
-  icons: {
-    icon: [{ url: "/brand/favicon-clean-red.ico" }],
-    apple: "/brand/apple-touch-icon.png",
-  },
-};
 
 export default function HomePage() {
   return (

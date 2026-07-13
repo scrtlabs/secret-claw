@@ -693,6 +693,21 @@ body {
   transform: rotate(9deg) scale(0.9);
 }
 
+/* ── BlueSnap HPF iframe reset ───────────────────────────────────────────── */
+/* BlueSnap injects <iframe> elements inside the data-bluesnap divs.         */
+/* Without explicit sizing they render at 0×0 and are non-interactive.       */
+[data-bluesnap] {
+  display: flex;
+  align-items: center;
+}
+[data-bluesnap] iframe {
+  width: 100%;
+  height: 22px;
+  min-height: 22px;
+  border: 0;
+  vertical-align: middle;
+}
+
 /* ── Agent list row ──────────────────────────────────────────────────────── */
 .agent-row:hover {
   border-color: var(--ember2) !important;

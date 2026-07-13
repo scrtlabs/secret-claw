@@ -80,42 +80,57 @@ export default function SubscribePage() {
       .catch(() => setStage("error"));
   }, [sessionStatus]);
 
-  // Initialize HPF when both token and SDK are ready
+  // Initialize HPF when both token and SDK are ready.
+  // Wait one paint cycle (setTimeout 0) after divs appear — matches devportal pattern.
   useEffect(() => {
-    if (!pfToken || !sdkReady || hpfInitialized.current || !window.bluesnap) return;
-    hpfInitialized.current = true;
+    if (!pfToken || !sdkReady || hpfInitialized.current) return;
 
-    window.bluesnap.hostedPaymentFieldsCreate({
-      token: pfToken,
-      onFieldEventHandler: {
-        onError: (tagId: string, errorCode: string, errorDescription: string) => {
-          setFieldErrors((prev) => ({ ...prev, [tagId]: errorDescription || errorCode }));
-        },
-        onValid: (tagId: string) => {
-          setFieldErrors((prev) => {
-            const next = { ...prev };
-            delete next[tagId];
-            return next;
-          });
-        },
-        onFocus: () => {},
-        onBlur:  () => {},
-      },
-      style: {
-        ".invalid": { color: "#ef4444" },
-        input: {
-          color: "#e8d5b7",
-          "font-family": "ui-monospace, SFMono-Regular, Menlo, monospace",
-          "font-size": "14px",
-        },
-        "::placeholder": { color: "#7a6050" },
-      },
-      ccnPlaceHolder:     "Card number",
-      cvvPlaceHolder:     "CVV",
-      expDatePlaceHolder: "MM / YY",
-    });
+    const init = () => {
+      const bs = window.bluesnap;
+      if (!bs) return;
+      hpfInitialized.current = true;
 
-    setStage("ready");
+      const bsObj = {
+        token: pfToken,
+        onFieldEventHandler: {
+          onError: (tagId: string, errorCode: string, errorDescription: string) => {
+            setFieldErrors((prev) => ({ ...prev, [tagId]: errorDescription || errorCode }));
+          },
+          onValid: (tagId: string) => {
+            setFieldErrors((prev) => {
+              const next = { ...prev };
+              delete next[tagId];
+              return next;
+            });
+          },
+          onFocus: () => {},
+          onBlur:  () => {},
+        },
+        style: {
+          input: {
+            color: "#e8d5b7",
+            "font-size": "16px",
+            "font-family": "Inter, ui-sans-serif, system-ui, sans-serif",
+            "background-color": "transparent",
+          },
+        },
+        ccnPlaceHolder:  "1234 5678 9012 3456",
+        cvvPlaceHolder:  "123",
+        expPlaceHolder:  "MM/YY",
+      };
+
+      // SDK v5 renamed the method; try both
+      if (typeof bs.hostedPaymentFields === "function") {
+        bs.hostedPaymentFields(bsObj);
+      } else {
+        bs.hostedPaymentFieldsCreate(bsObj);
+      }
+
+      setStage("ready");
+    };
+
+    // One paint cycle so the data-bluesnap divs are fully in the DOM
+    setTimeout(init, 0);
   }, [pfToken, sdkReady]);
 
   function handleSubmit(e: React.FormEvent) {
