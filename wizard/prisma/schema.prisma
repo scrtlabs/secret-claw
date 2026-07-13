@@ -30,4 +30,29 @@ model User {
   passwordResetExpires     DateTime?
   createdAt                DateTime  @default(now())
   lastLogin                DateTime  @updatedAt
+  agents                   Agent[]   @relation("UserAgents")
+}
+
+model Agent {
+  id                  String    @id @default(cuid())
+  deploymentId        String    @unique
+  userSub             String
+  status              String
+  runtime             String
+  tier                String
+  secretaiModel       String?
+  vmId                String?
+  vmHostname          String?
+  jobId               String?
+  gatewayToken        String?
+  telegramEnabled     Boolean   @default(false)
+  telegramBotUsername String?
+  errorMessage        String?
+  createdAt           DateTime
+  provisionedAt       DateTime?
+  updatedAt           DateTime  @updatedAt
+
+  user                User      @relation("UserAgents", fields: [userSub], references: [sub])
+
+  @@index([userSub])
 }

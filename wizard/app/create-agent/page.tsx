@@ -137,7 +137,7 @@ export default function CreateAgentPage() {
   const [secretaiModel, setSecretaiModel] = useState<string>(DEFAULT_SECRETAI_MODEL);
   const [secretaiKey, setSecretaiKey] = useState("");
   const [anthropicKey, setAnthropicKey] = useState("");
-  const [telegramChoice, setTelegramChoice] = useState<TelegramChoice>(null);
+  const [telegramChoice, setTelegramChoice] = useState<TelegramChoice>("skipped");
   const [botToken, setBotToken] = useState("");
   const [chatId, setChatId] = useState("");
 

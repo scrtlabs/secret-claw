@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     telegram_bot_username: body.telegramBotUsername,
     created_at: new Date().toISOString(),
   };
-  await db.insert(record);
+  await db.insert(record, sessionUser.sub);
 
   // Fire-and-forget continuation. handlePortalProvisioning swallows its own
   // errors and persists them on the deployment record; the .catch here is a
