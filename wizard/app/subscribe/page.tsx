@@ -135,31 +135,21 @@ export default function SubscribePage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!window.bluesnap || stage !== "ready") return;
+    if (!window.bluesnap || stage !== "ready" || !pfToken) return;
     setSubmitError(null);
     setStage("submitting");
 
+    // SDK v5: two separate callbacks (success, error).
+    // After HPF submit succeeds, the original pfToken is now signed with the
+    // entered card data — pass it directly to the server (no token from callback).
     window.bluesnap.hostedPaymentFieldsSubmitData(
-      async (callback: { error?: Array<{ errorCode: string; errorDescription: string }>; cardData?: { pfToken: string } }) => {
-        if (callback.error?.length) {
-          setSubmitError(callback.error[0]?.errorDescription ?? "Card validation failed.");
-          setStage("ready");
-          return;
-        }
-
-        const signedToken = callback.cardData?.pfToken;
-        if (!signedToken) {
-          setSubmitError("Card data missing — please try again.");
-          setStage("ready");
-          return;
-        }
-
+      async () => {
         try {
           const res = await fetch("/api/subscription/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              pfToken: signedToken,
+              pfToken,
               firstName: firstNameRef.current?.value ?? "",
               lastName: lastNameRef.current?.value ?? "",
             }),
@@ -176,6 +166,10 @@ export default function SubscribePage() {
           setSubmitError("Network error — please try again.");
           setStage("ready");
         }
+      },
+      (errors: Array<{ errorCode: string; errorDescription: string }>) => {
+        setSubmitError(errors?.[0]?.errorDescription ?? "Card validation failed.");
+        setStage("ready");
       },
     );
   }
