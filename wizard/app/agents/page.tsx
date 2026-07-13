@@ -48,16 +48,23 @@ export default function AgentsPage() {
     <div className="fg-page">
       <FoundryNav />
       <main className="mx-auto w-full max-w-3xl px-6 py-10">
-        <div className="mb-8">
-          <p
-            className="mb-1 text-[11px] uppercase tracking-widest"
-            style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
-          >
-            Your deployments
-          </p>
-          <h1 className="text-2xl font-black tracking-tight" style={{ color: "var(--cast)" }}>
-            Secret Agents
-          </h1>
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <div>
+            <p
+              className="mb-1 text-[11px] uppercase tracking-widest"
+              style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+            >
+              Your deployments
+            </p>
+            <h1 className="text-2xl font-black tracking-tight" style={{ color: "var(--cast)" }}>
+              Secret Agents
+            </h1>
+          </div>
+          {agents && agents.length > 0 && (
+            <Link href="/create-agent" className="fgbtn flex-shrink-0">
+              Forge new agent →
+            </Link>
+          )}
         </div>
 
         {error ? (

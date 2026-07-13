@@ -13,10 +13,17 @@ export async function GET() {
   const sub = await getSubscription(user.sub);
   if (!sub) return NextResponse.json({ status: "none" });
 
+  // Fall back to createdAt + 7 days for subscriptions saved before trialEndsAt was always set
+  const trialEndsAt =
+    sub.trialEndsAt?.toISOString() ??
+    (isActive(sub.status)
+      ? new Date(sub.createdAt.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      : null);
+
   return NextResponse.json({
     status: sub.status,
     active: isActive(sub.status),
-    trialEndsAt: sub.trialEndsAt?.toISOString() ?? null,
+    trialEndsAt,
     currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
     cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
   });

@@ -174,7 +174,7 @@ export default function ProfilePage() {
 
               {/* Details */}
               <div className="flex flex-col gap-2">
-                {sub.status === "trialing" && sub.trialEndsAt && (() => {
+                {sub.trialEndsAt && daysLeft(sub.trialEndsAt) > 0 && sub.status !== "canceled" && (() => {
                   const left = daysLeft(sub.trialEndsAt);
                   const pct = Math.min(100, Math.round(((7 - left) / 7) * 100));
                   return (
@@ -197,7 +197,7 @@ export default function ProfilePage() {
                     </div>
                   );
                 })()}
-                {sub.currentPeriodEnd && sub.status !== "canceled" && sub.status !== "trialing" && (
+                {sub.currentPeriodEnd && sub.status !== "canceled" && !(sub.trialEndsAt && daysLeft(sub.trialEndsAt) > 0) && (
                   <Row
                     label={sub.cancelAtPeriodEnd ? "Access until" : "Next renewal"}
                     value={fmt(sub.currentPeriodEnd)}

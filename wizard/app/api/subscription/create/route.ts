@@ -38,11 +38,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "BlueSnap subscription creation failed" }, { status: 502 });
   }
 
-  // Calculate trial end date (7 days from now for "trialing" status)
-  const trialEndsAt =
-    created.status === "trialing"
-      ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      : null;
+  // Always set trialEndsAt — BlueSnap sometimes returns ACTIVE instead of TRIAL
+  // for new subscriptions that include a trial period.
+  const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   // Parse nextChargeDate as currentPeriodEnd
   const currentPeriodEnd = created.nextChargeDate
