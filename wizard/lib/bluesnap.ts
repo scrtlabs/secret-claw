@@ -98,8 +98,6 @@ async function createProPlan(): Promise<string | null> {
       recurringChargeAmount: PRO_PLAN_PRICE,
       chargeFrequency: "MONTHLY",
       trialPeriodDays: PRO_PLAN_TRIAL_DAYS,
-      initialChargeAmount: 0,
-      maxNumberOfCharges: 0,
     },
   );
   if (!result.ok || !result.data?.planId) return null;
@@ -107,10 +105,12 @@ async function createProPlan(): Promise<string | null> {
 }
 
 /**
- * Returns the Pro plan ID, creating it in BlueSnap if it doesn't exist yet.
- * Caches the result in the Setting table.
+ * Returns the Pro plan ID.
+ * Priority: BLUESNAP_PRO_PLAN_ID env var → Setting table cache → auto-create.
  */
 export async function getOrCreateProPlanId(): Promise<string | null> {
+  if (process.env.BLUESNAP_PRO_PLAN_ID) return process.env.BLUESNAP_PRO_PLAN_ID;
+
   const cached = await prisma.setting.findUnique({
     where: { key: "bluesnap_pro_plan_id" },
   });

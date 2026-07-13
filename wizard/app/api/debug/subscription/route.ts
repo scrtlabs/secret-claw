@@ -9,71 +9,56 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const username = process.env.BLUESNAP_API_USERNAME ?? "";
-  const password = process.env.BLUESNAP_API_PASSWORD ?? "";
-  const env = process.env.BLUESNAP_ENV ?? "sandbox";
   const base = apiBase();
 
-  // Test pfToken call
+  // Test pfToken
   let pfTokenStatus = 0;
-  let pfTokenLocation: string | null = null;
+  let pfTokenToken: string | null = null;
   let pfTokenError: string | null = null;
   try {
     const res = await fetch(`${base}/services/2/payment-fields-tokens`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization": authHeader(),
-      },
+      headers: { "Content-Type": "application/json", "Accept": "application/json", "Authorization": authHeader() },
       body: "{}",
     });
     pfTokenStatus = res.status;
-    pfTokenLocation = res.headers.get("location");
-    if (!res.ok) {
-      pfTokenError = await res.text().catch(() => "(unreadable)");
-    }
-  } catch (e) {
-    pfTokenError = String(e);
-  }
+    pfTokenToken = res.headers.get("location")?.split("/").pop() ?? null;
+    if (!res.ok) pfTokenError = await res.text().catch(() => null);
+  } catch (e) { pfTokenError = String(e); }
 
-  // Check cached plan
-  const cachedPlan = await prisma.setting.findUnique({ where: { key: "bluesnap_pro_plan_id" } });
-
-  // Test plan creation (dry-run: just check GET /plans works)
-  let planListStatus = 0;
-  let planListError: string | null = null;
+  // Test plan creation
+  let planCreateStatus = 0;
+  let planCreateBody: unknown = null;
+  let planCreateError: string | null = null;
   try {
     const res = await fetch(`${base}/services/2/recurring/plans`, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "Authorization": authHeader(),
-      },
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json", "Authorization": authHeader() },
+      body: JSON.stringify({
+        planName: "SecretForge Pro",
+        currency: "USD",
+        recurringChargeAmount: 29,
+        chargeFrequency: "MONTHLY",
+        trialPeriodDays: 7,
+      }),
     });
-    planListStatus = res.status;
-    if (!res.ok) planListError = await res.text().catch(() => "(unreadable)");
-  } catch (e) {
-    planListError = String(e);
-  }
+    planCreateStatus = res.status;
+    planCreateBody = await res.json().catch(() => res.text());
+    if (!res.ok) planCreateError = JSON.stringify(planCreateBody);
+  } catch (e) { planCreateError = String(e); }
+
+  const cachedPlan = await prisma.setting.findUnique({ where: { key: "bluesnap_pro_plan_id" } });
 
   return NextResponse.json({
-    env,
+    env: process.env.BLUESNAP_ENV ?? "sandbox",
     apiBase: base,
-    username_set: !!username,
-    username_length: username.length,
-    password_set: !!password,
-    password_length: password.length,
-    pfToken: {
-      status: pfTokenStatus,
-      location: pfTokenLocation,
-      token: pfTokenLocation?.split("/").pop() ?? null,
-      error: pfTokenError,
+    credentials: {
+      username_length: (process.env.BLUESNAP_API_USERNAME ?? "").length,
+      password_length: (process.env.BLUESNAP_API_PASSWORD ?? "").length,
     },
-    plan: {
-      cachedPlanId: cachedPlan?.value ?? null,
-      listStatus: planListStatus,
-      listError: planListError,
-    },
+    pfToken: { status: pfTokenStatus, token: pfTokenToken?.slice(0, 20) + "…", error: pfTokenError },
+    planCreate: { status: planCreateStatus, body: planCreateBody, error: planCreateError },
+    cachedPlanId: cachedPlan?.value ?? null,
+    envPlanId: process.env.BLUESNAP_PRO_PLAN_ID ?? null,
   });
 }
