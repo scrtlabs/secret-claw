@@ -7,6 +7,27 @@ import { useSession } from "next-auth/react";
 import FoundryNav from "@/components/homepage/foundry/FoundryNav";
 import FoundryFooter from "@/components/homepage/foundry/FoundryFooter";
 
+// Defined outside the component so the object reference never changes between
+// renders — prevents React from re-applying style props to the BlueSnap iframe
+// containers (which would detach the iframes and disable the card fields).
+const INPUT_STYLE: React.CSSProperties = {
+  background: "#0e0b09",
+  border: "1px solid var(--bronze)",
+  borderRadius: "8px",
+  color: "var(--cast)",
+  fontSize: "14px",
+  padding: "10px 14px",
+  width: "100%",
+  fontFamily: "inherit",
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+const HPF_FIELD_STYLE: React.CSSProperties = {
+  ...INPUT_STYLE,
+  height: "42px",
+};
+
 declare global {
   interface Window {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,8 +55,8 @@ export default function SubscribePage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [sdkSrc, setSdkSrc] = useState<string | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const firstNameRef = useRef<HTMLInputElement>(null);
+  const lastNameRef = useRef<HTMLInputElement>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const hpfInitialized = useRef(false);
@@ -122,7 +143,11 @@ export default function SubscribePage() {
           const res = await fetch("/api/subscription/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pfToken: signedToken, firstName, lastName }),
+            body: JSON.stringify({
+              pfToken: signedToken,
+              firstName: firstNameRef.current?.value ?? "",
+              lastName: lastNameRef.current?.value ?? "",
+            }),
           });
           const body = await res.json();
           if (!res.ok) {
@@ -140,23 +165,6 @@ export default function SubscribePage() {
     );
   }
 
-  const inputStyle: React.CSSProperties = {
-    background: "#0e0b09",
-    border: "1px solid var(--bronze)",
-    borderRadius: "8px",
-    color: "var(--cast)",
-    fontSize: "14px",
-    padding: "10px 14px",
-    width: "100%",
-    fontFamily: "inherit",
-    outline: "none",
-    boxSizing: "border-box",
-  };
-
-  const hpfFieldStyle: React.CSSProperties = {
-    ...inputStyle,
-    height: "42px",
-  };
 
   return (
     <div className="fg-page">
@@ -236,12 +244,12 @@ export default function SubscribePage() {
                     First name
                   </label>
                   <input
+                    ref={firstNameRef}
                     type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
+                    defaultValue=""
                     placeholder="John"
                     required
-                    style={inputStyle}
+                    style={INPUT_STYLE}
                     onFocus={(e) => { e.currentTarget.style.borderColor = "var(--ember2)"; }}
                     onBlur={(e) => { e.currentTarget.style.borderColor = "var(--bronze)"; }}
                   />
@@ -251,12 +259,12 @@ export default function SubscribePage() {
                     Last name
                   </label>
                   <input
+                    ref={lastNameRef}
                     type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
+                    defaultValue=""
                     placeholder="Doe"
                     required
-                    style={inputStyle}
+                    style={INPUT_STYLE}
                     onFocus={(e) => { e.currentTarget.style.borderColor = "var(--ember2)"; }}
                     onBlur={(e) => { e.currentTarget.style.borderColor = "var(--bronze)"; }}
                   />
@@ -280,7 +288,7 @@ export default function SubscribePage() {
                     <label className="text-[11px] uppercase tracking-wider" style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}>
                       Card number
                     </label>
-                    <div data-bluesnap="ccn" style={hpfFieldStyle} />
+                    <div data-bluesnap="ccn" style={HPF_FIELD_STYLE} />
                     {fieldErrors["ccn"] && (
                       <p className="text-xs" style={{ color: "#ef4444" }}>{fieldErrors["ccn"]}</p>
                     )}
@@ -291,7 +299,7 @@ export default function SubscribePage() {
                       <label className="text-[11px] uppercase tracking-wider" style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}>
                         Expiry
                       </label>
-                      <div data-bluesnap="exp" style={hpfFieldStyle} />
+                      <div data-bluesnap="exp" style={HPF_FIELD_STYLE} />
                       {fieldErrors["exp"] && (
                         <p className="text-xs" style={{ color: "#ef4444" }}>{fieldErrors["exp"]}</p>
                       )}
@@ -300,7 +308,7 @@ export default function SubscribePage() {
                       <label className="text-[11px] uppercase tracking-wider" style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}>
                         CVV
                       </label>
-                      <div data-bluesnap="cvv" style={hpfFieldStyle} />
+                      <div data-bluesnap="cvv" style={HPF_FIELD_STYLE} />
                       {fieldErrors["cvv"] && (
                         <p className="text-xs" style={{ color: "#ef4444" }}>{fieldErrors["cvv"]}</p>
                       )}
