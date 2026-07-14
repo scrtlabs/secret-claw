@@ -71,6 +71,7 @@ function OptionCard<T extends string>({
       aria-pressed={selected}
       className="fgopt"
     >
+      <span className="fgopt__check" aria-hidden="true">✓</span>
       <span className="fgopt__top">
         <span className="fgopt__name">{opt.name}</span>
         <span className="fgopt__tag">{opt.tag}</span>
