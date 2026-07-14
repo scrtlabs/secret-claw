@@ -621,16 +621,7 @@ body {
   color: var(--cast-dim);
 }
 .fgopt__check {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  color: var(--molten);
-  opacity: 0;
-  transition: opacity 0.16s ease;
-  font-size: 13px;
-}
-.fgopt[aria-pressed="true"] .fgopt__check {
-  opacity: 1;
+  display: none;
 }
 
 .fgdeploy__cta {
