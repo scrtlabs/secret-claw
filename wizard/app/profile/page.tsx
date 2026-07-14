@@ -193,7 +193,7 @@ export default function ProfilePage() {
                       </div>
                       <p className="text-xs" style={{ color: "var(--cast-dimmer)" }}>
                         Ends {fmt(sub.trialEndsAt)}
-                        {!sub.cancelAtPeriodEnd && sub.status !== "canceled" && " · $29/month after trial"}
+                        {!sub.cancelAtPeriodEnd && " · $29/month after trial"}
                       </p>
                     </div>
                   );
