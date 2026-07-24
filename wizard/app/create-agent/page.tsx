@@ -163,6 +163,9 @@ export default function CreateAgentPage() {
   const [anthropicState, setAnthropicState] = useState<ValidationState>({ kind: "idle" });
   const [telegramState, setTelegramState] = useState<ValidationState>({ kind: "idle" });
   const [botUsername, setBotUsername] = useState<string | undefined>(undefined);
+  // Chat ID is auto-discovered from the bot token by default; this reveals a
+  // manual chat-ID field as a fallback (e.g. when the bot has a webhook set).
+  const [manualChat, setManualChat] = useState(false);
 
   interface PortalLinkInfo { enabled: boolean; linked: boolean; email?: string; balance?: number }
   const [portalLink, setPortalLink] = useState<PortalLinkInfo | null>(null);
@@ -329,17 +332,8 @@ export default function CreateAgentPage() {
   async function validateTelegram(): Promise<ValidationState> {
     const tokenT = botToken.trim();
     const chatT = chatId.trim();
-    if (!tokenT && !chatT) {
+    if (!tokenT) {
       const s: ValidationState = { kind: "idle" };
-      setTelegramState(s);
-      return s;
-    }
-    if (!tokenT || !chatT) {
-      const s: ValidationState = {
-        kind: "invalid",
-        message: "Both fields required",
-        detail: "Bot token and chat ID must both be provided to enable Telegram.",
-      };
       setTelegramState(s);
       return s;
     }
@@ -349,21 +343,30 @@ export default function CreateAgentPage() {
       const res = await fetch("/api/validate-telegram", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ botToken: tokenT, chatId: chatT }),
+        // Send the chat ID only in manual-fallback mode; otherwise the server
+        // auto-discovers it from the bot's recent updates and returns it.
+        body: JSON.stringify({ botToken: tokenT, chatId: manualChat ? chatT : undefined }),
       });
-      const body = (await res.json()) as { valid: boolean; error?: string; botUsername?: string; status?: number };
+      const body = (await res.json()) as {
+        valid: boolean; error?: string; botUsername?: string; chatId?: string; status?: number;
+      };
       if (body.valid) {
         setBotUsername(body.botUsername);
+        // Persist the resolved chat ID (auto-discovered) so submit sends it.
+        if (body.chatId && !manualChat) setChatId(body.chatId);
+        const linkedChat = (manualChat ? chatT : body.chatId) || "";
         result = {
           kind: "valid",
-          message: body.botUsername ? `Valid · @${body.botUsername}` : "Valid",
+          message: body.botUsername
+            ? `Linked · @${body.botUsername}${linkedChat ? ` → ${linkedChat}` : ""}`
+            : "Valid",
           botUsername: body.botUsername,
         };
       } else {
         result = {
           kind: "invalid",
           message: body.error || "Invalid",
-          detail: `Telegram returned status ${body.status ?? "unknown"}`,
+          detail: body.status ? `Telegram returned status ${body.status}` : undefined,
         };
       }
     } catch (err) {
@@ -378,25 +381,42 @@ export default function CreateAgentPage() {
     setShowInvalidHighlights(true);
     setSubmitting(true);
 
-    const secretaiResult: ValidationState = usingLinkedKey
-      ? { kind: "valid" }
-      : await validateSecretai();
-    const anthropicResult: ValidationState =
-      tier === "byo" ? await validateAnthropic() : { kind: "valid" };
+    const secretaiP: Promise<ValidationState> = usingLinkedKey
+      ? Promise.resolve({ kind: "valid" })
+      : secretaiState.kind === "valid"
+        ? Promise.resolve(secretaiState)
+        : validateSecretai();
 
-    let telegramResult: ValidationState;
+    const anthropicP: Promise<ValidationState> =
+      tier !== "byo"
+        ? Promise.resolve({ kind: "valid" })
+        : anthropicState.kind === "valid"
+          ? Promise.resolve(anthropicState)
+          : validateAnthropic();
+
+    let telegramP: Promise<ValidationState>;
     if (telegramChoice === "enabled") {
-      telegramResult = await validateTelegram();
+      telegramP =
+        telegramState.kind === "valid"
+          ? Promise.resolve(telegramState)
+          : validateTelegram();
     } else if (telegramChoice === "skipped") {
-      telegramResult = { kind: "valid" };
+      telegramP = Promise.resolve({ kind: "valid" });
     } else {
-      telegramResult = {
+      const noChoice: ValidationState = {
         kind: "invalid",
         message: "Choose Enable or Skip",
         detail: "Pick one of the Telegram options before continuing.",
       };
-      setTelegramState(telegramResult);
+      setTelegramState(noChoice);
+      telegramP = Promise.resolve(noChoice);
     }
+
+    const [secretaiResult, anthropicResult, telegramResult] = await Promise.all([
+      secretaiP,
+      anthropicP,
+      telegramP,
+    ]);
 
     let target: string | null = null;
     if (secretaiResult.kind !== "valid") target = "section-secretai";
@@ -683,7 +703,7 @@ export default function CreateAgentPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <ForgeOption
                 title="Enable Telegram"
-                description="Paste a bot token from @BotFather and your chat ID."
+                description="Paste a bot token from @BotFather — we link your chat automatically."
                 selected={telegramChoice === "enabled"}
                 onClick={() => {
                   setTelegramChoice("enabled");
@@ -702,90 +722,81 @@ export default function CreateAgentPage() {
             </div>
 
             {telegramChoice === "enabled" ? (
-              <div className="mt-4 grid grid-cols-1 gap-5">
-                <div className="flex flex-col gap-2">
-                  <span
-                    className="text-[11px] uppercase tracking-wider"
-                    style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+              <div className="mt-4 flex flex-col gap-3">
+                <p className="text-[11px] leading-relaxed" style={{ color: "var(--cast-dim)" }}>
+                  Message{" "}
+                  <a
+                    href="https://t.me/BotFather"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline"
+                    style={{ color: "var(--ember2)" }}
                   >
-                    Step 1 — Bot token
-                  </span>
-                  <p className="text-[11px] leading-relaxed" style={{ color: "var(--cast-dim)" }}>
-                    Message{" "}
-                    <a
-                      href="https://t.me/BotFather"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hover:underline"
-                      style={{ color: "var(--ember2)" }}
-                    >
-                      @BotFather
-                    </a>{" "}
-                    on Telegram, send{" "}
-                    <code className="font-mono" style={{ color: "var(--cast)" }}>/newbot</code>, follow the prompts.
-                    BotFather replies with a token like{" "}
-                    <code className="font-mono" style={{ color: "var(--cast)" }}>1234567890:ABC-def…</code>.
-                  </p>
-                  <ForgeInput
-                    type="text"
-                    placeholder="0000000000:..."
-                    value={botToken}
-                    onChange={(e) => {
-                      setBotToken(e.target.value);
-                      if (telegramState.kind !== "idle") setTelegramState({ kind: "idle" });
-                    }}
-                    onBlur={() => void validateTelegram()}
-                    invalid={telegramState.kind === "invalid"}
-                  />
-                </div>
+                    @BotFather
+                  </a>{" "}
+                  on Telegram, send{" "}
+                  <code className="font-mono" style={{ color: "var(--cast)" }}>/newbot</code>, and paste the token
+                  it gives you below. Then open your new bot and tap{" "}
+                  <strong style={{ color: "var(--cast)" }}>Start</strong> (or send it any message) — we&apos;ll
+                  link your chat automatically.
+                </p>
+                <ForgeInput
+                  type="text"
+                  placeholder="0000000000:..."
+                  value={botToken}
+                  onChange={(e) => {
+                    setBotToken(e.target.value);
+                    if (telegramState.kind !== "idle") setTelegramState({ kind: "idle" });
+                  }}
+                  onBlur={() => void validateTelegram()}
+                  invalid={telegramState.kind === "invalid"}
+                />
 
-                <div className="flex flex-col gap-2">
-                  <span
-                    className="text-[11px] uppercase tracking-wider"
-                    style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
-                  >
-                    Step 2 — Chat ID
-                  </span>
-                  <p className="text-[11px] leading-relaxed" style={{ color: "var(--cast-dim)" }}>
-                    Open Telegram, find your new bot, send it any message
-                    (e.g. <code className="font-mono" style={{ color: "var(--cast)" }}>/start</code>), then open
-                    this URL and look for{" "}
-                    <code className="font-mono" style={{ color: "var(--cast)" }}>chat.id</code> in the JSON:
-                  </p>
-                  {botToken.trim().includes(":") ? (
-                    <a
-                      href={`https://api.telegram.org/bot${encodeURIComponent(botToken.trim())}/getUpdates`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block break-all rounded-md border px-3 py-2 font-mono text-[11px] transition-colors hover:underline"
-                      style={{
-                        borderColor: "var(--bronze)",
-                        background: "var(--iron)",
-                        color: "var(--ember2)",
-                      }}
-                    >
-                      https://api.telegram.org/bot{botToken.trim()}/getUpdates ↗
-                    </a>
-                  ) : (
+                {manualChat ? (
+                  <div className="flex flex-col gap-2">
                     <span
-                      className="block rounded-md border border-dashed px-3 py-2 font-mono text-[11px]"
-                      style={{ borderColor: "var(--bronze)", background: "var(--iron)", color: "var(--cast-dimmer)" }}
+                      className="text-[11px] uppercase tracking-wider"
+                      style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
                     >
-                      Paste your bot token above to generate this link
+                      Chat ID
                     </span>
-                  )}
-                  <ForgeInput
-                    type="text"
-                    placeholder="-1001234567890 or 1234567890"
-                    value={chatId}
-                    onChange={(e) => {
-                      setChatId(e.target.value);
+                    <ForgeInput
+                      type="text"
+                      placeholder="-1001234567890 or 1234567890"
+                      value={chatId}
+                      onChange={(e) => {
+                        setChatId(e.target.value);
+                        if (telegramState.kind !== "idle") setTelegramState({ kind: "idle" });
+                      }}
+                      onBlur={() => void validateTelegram()}
+                      invalid={telegramState.kind === "invalid"}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualChat(false);
+                        setChatId("");
+                        if (telegramState.kind !== "idle") setTelegramState({ kind: "idle" });
+                      }}
+                      className="self-start text-[11px] hover:underline"
+                      style={{ color: "var(--ember2)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                    >
+                      ← Back to automatic chat detection
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualChat(true);
                       if (telegramState.kind !== "idle") setTelegramState({ kind: "idle" });
                     }}
-                    onBlur={() => void validateTelegram()}
-                    invalid={telegramState.kind === "invalid"}
-                  />
-                </div>
+                    className="self-start text-[11px] hover:underline"
+                    style={{ color: "var(--cast-dimmer)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                  >
+                    Chat not detected? Enter chat ID manually
+                  </button>
+                )}
               </div>
             ) : null}
           </SectionShell>
