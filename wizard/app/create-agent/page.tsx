@@ -147,6 +147,37 @@ function ForgeOption({
   );
 }
 
+// Inline, full-width status row for the Telegram step. Unlike the header pill it
+// wraps long messages (e.g. the "message your bot" instruction) instead of
+// overflowing. Amber = checking/waiting, green = linked, red = real error.
+function TelegramStatus({ state }: { state: ValidationState }) {
+  const palette =
+    state.kind === "valid"
+      ? { border: "rgba(0,224,138,0.4)", bg: "rgba(0,224,138,0.08)", text: "var(--verify)" }
+      : state.kind === "invalid"
+        ? { border: "rgba(239,68,68,0.4)", bg: "rgba(239,68,68,0.08)", text: "#ef4444" }
+        : { border: "rgba(255,176,32,0.4)", bg: "rgba(255,176,32,0.08)", text: "var(--ember2)" };
+  return (
+    <div
+      className="flex items-start gap-2.5 rounded-md border px-3 py-2.5 text-[12px] leading-relaxed"
+      style={{ borderColor: palette.border, background: palette.bg, color: palette.text }}
+    >
+      <span className="mt-[2px] flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center">
+        {state.kind === "valid" ? (
+          <span className="text-[13px] leading-none">✓</span>
+        ) : state.kind === "invalid" ? (
+          <span className="text-[13px] leading-none">✕</span>
+        ) : (
+          <span className="h-2 w-2 rounded-full animate-pulse" style={{ background: "var(--ember2)" }} />
+        )}
+      </span>
+      <span className="min-w-0 break-words">
+        {state.message || (state.kind === "validating" ? "Checking…" : state.kind === "valid" ? "Valid" : "Invalid")}
+      </span>
+    </div>
+  );
+}
+
 export default function CreateAgentPage() {
   const router = useRouter();
 
@@ -166,6 +197,10 @@ export default function CreateAgentPage() {
   // Chat ID is auto-discovered from the bot token by default; this reveals a
   // manual chat-ID field as a fallback (e.g. when the bot has a webhook set).
   const [manualChat, setManualChat] = useState(false);
+  // True once the token is valid but we're still waiting for the user to message
+  // the bot — drives the automatic re-check loop below.
+  const [awaitingChat, setAwaitingChat] = useState(false);
+  const telegramPollBusy = useRef(false);
 
   interface PortalLinkInfo { enabled: boolean; linked: boolean; email?: string; balance?: number }
   const [portalLink, setPortalLink] = useState<PortalLinkInfo | null>(null);
@@ -258,6 +293,20 @@ export default function CreateAgentPage() {
     return null;
   }
 
+  // The section-header pill shows a SHORT status only — the full message
+  // (including the multi-line "message your bot" instruction) is rendered in a
+  // wrapping block under the input, so nothing overflows the pill.
+  function telegramPillStatus(): ValidationState | undefined {
+    if (telegramChoice === "skipped") return { kind: "valid", message: "Skipped" };
+    switch (telegramState.kind) {
+      case "idle":       return undefined;
+      case "valid":      return { kind: "valid", message: botUsername ? `@${botUsername}` : "Linked" };
+      case "invalid":    return { kind: "invalid", message: "Needs attention" };
+      case "validating": return { kind: "validating", message: awaitingChat ? "Waiting…" : "Checking…" };
+      default:           return { kind: telegramState.kind };
+    }
+  }
+
   async function validateSecretai(): Promise<ValidationState> {
     const trimmed = secretaiKey.trim();
     if (!trimmed) {
@@ -333,11 +382,14 @@ export default function CreateAgentPage() {
     const tokenT = botToken.trim();
     const chatT = chatId.trim();
     if (!tokenT) {
+      setAwaitingChat(false);
       const s: ValidationState = { kind: "idle" };
       setTelegramState(s);
       return s;
     }
-    setTelegramState({ kind: "validating" });
+    // Show the spinner, but keep any existing "waiting" message during a poll
+    // re-check so the amber block doesn't flicker.
+    setTelegramState((prev) => (prev.kind === "validating" ? prev : { kind: "validating" }));
     let result: ValidationState;
     try {
       const res = await fetch("/api/validate-telegram", {
@@ -348,9 +400,10 @@ export default function CreateAgentPage() {
         body: JSON.stringify({ botToken: tokenT, chatId: manualChat ? chatT : undefined }),
       });
       const body = (await res.json()) as {
-        valid: boolean; error?: string; botUsername?: string; chatId?: string; status?: number;
+        valid: boolean; pending?: boolean; error?: string; botUsername?: string; chatId?: string; status?: number;
       };
       if (body.valid) {
+        setAwaitingChat(false);
         setBotUsername(body.botUsername);
         // Persist the resolved chat ID (auto-discovered) so submit sends it.
         if (body.chatId && !manualChat) setChatId(body.chatId);
@@ -362,7 +415,14 @@ export default function CreateAgentPage() {
             : "Valid",
           botUsername: body.botUsername,
         };
+      } else if (body.pending) {
+        // Token is good — just waiting for the user to message the bot. Stay in
+        // the amber "validating" state; the poll effect re-checks automatically.
+        setAwaitingChat(true);
+        if (body.botUsername) setBotUsername(body.botUsername);
+        result = { kind: "validating", message: body.error || "Waiting for you to message the bot…" };
       } else {
+        setAwaitingChat(false);
         result = {
           kind: "invalid",
           message: body.error || "Invalid",
@@ -370,11 +430,42 @@ export default function CreateAgentPage() {
         };
       }
     } catch (err) {
-      result = { kind: "invalid", message: "Network error", detail: err instanceof Error ? err.message : String(err) };
+      // A transient network error during the wait shouldn't drop us to red —
+      // keep waiting and let the next poll retry.
+      if (awaitingChat) {
+        result = { kind: "validating", message: "Reconnecting…" };
+      } else {
+        result = { kind: "invalid", message: "Network error", detail: err instanceof Error ? err.message : String(err) };
+      }
     }
     setTelegramState(result);
     return result;
   }
+
+  // Auto-start validation once a plausibly complete token is typed (auto mode
+  // only), so the user doesn't have to blur the field to kick it off.
+  useEffect(() => {
+    if (telegramChoice !== "enabled" || manualChat) return;
+    if (telegramState.kind !== "idle") return;
+    const t = botToken.trim();
+    if (!t.includes(":") || t.length < 20) return;
+    const h = setTimeout(() => void validateTelegram(), 600);
+    return () => clearTimeout(h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [botToken, telegramChoice, manualChat, telegramState.kind]);
+
+  // While waiting for the user to message the bot, re-check automatically every
+  // 3s until it turns green (or the token/choice changes and tears this down).
+  useEffect(() => {
+    if (telegramChoice !== "enabled" || !awaitingChat) return;
+    const id = setInterval(() => {
+      if (telegramPollBusy.current) return;
+      telegramPollBusy.current = true;
+      void validateTelegram().finally(() => { telegramPollBusy.current = false; });
+    }, 3000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingChat, telegramChoice]);
 
   async function onSubmit() {
     setSubmitError(null);
@@ -691,13 +782,7 @@ export default function CreateAgentPage() {
             index={4}
             title="Telegram (optional)"
             helper="Connect Telegram to let your agent message you proactively — daily news brief, evening crypto summary, welcome message. Without Telegram, your agent is reachable only through its web URL."
-            status={
-              telegramChoice === "skipped"
-                ? { kind: "valid", message: "Skipped" }
-                : telegramState.kind === "idle"
-                  ? undefined
-                  : telegramState
-            }
+            status={telegramPillStatus()}
             invalid={showInvalidHighlights && !telegramValid}
           >
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -746,11 +831,16 @@ export default function CreateAgentPage() {
                   value={botToken}
                   onChange={(e) => {
                     setBotToken(e.target.value);
+                    setAwaitingChat(false);
                     if (telegramState.kind !== "idle") setTelegramState({ kind: "idle" });
                   }}
                   onBlur={() => void validateTelegram()}
                   invalid={telegramState.kind === "invalid"}
                 />
+
+                {telegramState.kind !== "idle" && (
+                  <TelegramStatus state={telegramState} />
+                )}
 
                 {manualChat ? (
                   <div className="flex flex-col gap-2">
@@ -776,6 +866,7 @@ export default function CreateAgentPage() {
                       onClick={() => {
                         setManualChat(false);
                         setChatId("");
+                        setAwaitingChat(false);
                         if (telegramState.kind !== "idle") setTelegramState({ kind: "idle" });
                       }}
                       className="self-start text-[11px] hover:underline"
@@ -789,6 +880,7 @@ export default function CreateAgentPage() {
                     type="button"
                     onClick={() => {
                       setManualChat(true);
+                      setAwaitingChat(false);
                       if (telegramState.kind !== "idle") setTelegramState({ kind: "idle" });
                     }}
                     className="self-start text-[11px] hover:underline"

@@ -120,10 +120,13 @@ export async function POST(request: Request) {
       if (discovered) break;
     }
     if (!discovered) {
+      // Token is valid — we're just waiting for the user to message the bot.
+      // `pending` tells the client to keep polling instead of showing an error.
       return NextResponse.json({
         valid: false,
+        pending: true,
         botUsername,
-        error: `Open @${botUsername} in Telegram and tap Start (or send any message), then re-check.`,
+        error: `Open @${botUsername} in Telegram and tap Start (or send it any message) — we're linking your chat automatically.`,
       });
     }
     return NextResponse.json({ valid: true, botUsername, chatId: discovered });
