@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { render } from "@/lib/render";
 import { createVm, getJobStatus } from "@/lib/portal-client";
 import { resolvePortalApiKey } from "@/lib/portal-link/resolve";
+import { getAnthropicKeyPlaintext } from "@/lib/anthropic-keys/store";
 import { getSessionUser } from "@/lib/auth/session";
 import { isSubscriptionActive } from "@/lib/subscription";
 import {
@@ -70,11 +71,26 @@ export async function POST(request: Request) {
     );
   }
   body.secretaiApiKey = secretaiApiKey;
-  if (tier === "byo" && !body.anthropicApiKey) {
-    return NextResponse.json(
-      { error: "anthropicApiKey is required for BYO tier" },
-      { status: 400 },
-    );
+  if (tier === "byo") {
+    // A saved-key reference (anthropicKeyId) resolves server-side to the
+    // stored plaintext; otherwise the client sent a raw key inline. The rest
+    // of the pipeline only ever sees the resolved plaintext.
+    if (body.anthropicKeyId) {
+      const resolved = await getAnthropicKeyPlaintext(sessionUser.sub, body.anthropicKeyId);
+      if (!resolved) {
+        return NextResponse.json(
+          { error: "anthropicKeyId does not match a saved key" },
+          { status: 400 },
+        );
+      }
+      body.anthropicApiKey = resolved;
+    }
+    if (!body.anthropicApiKey) {
+      return NextResponse.json(
+        { error: "anthropicApiKey is required for BYO tier" },
+        { status: 400 },
+      );
+    }
   }
 
   // Resolve and validate the Secret-tier model. Whitelist enforcement

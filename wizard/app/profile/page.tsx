@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import FoundryNav from "@/components/homepage/foundry/FoundryNav";
 import FoundryFooter from "@/components/homepage/foundry/FoundryFooter";
+import { AnthropicKeysCard } from "@/components/anthropic/AnthropicKeysCard";
 
 interface SubData {
   status: "trialing" | "active" | "canceled" | "past_due" | "pending" | "none";
@@ -278,6 +279,9 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* API keys management */}
+        {sessionStatus === "authenticated" && <AnthropicKeysCard />}
 
       </main>
       <FoundryFooter />

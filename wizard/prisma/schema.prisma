@@ -18,6 +18,20 @@ model PortalLink {
   updatedAt    DateTime @updatedAt
 }
 
+model AnthropicKey {
+  id        String   @id @default(cuid())
+  userSub   String
+  name      String
+  keyCipher String
+  // Last 4 chars of the plaintext key, for display (e.g. "ab12"). Never the full key.
+  keyHint   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userSub, name])
+  @@index([userSub])
+}
+
 model User {
   id                       String        @id @default(cuid())
   email                    String        @unique

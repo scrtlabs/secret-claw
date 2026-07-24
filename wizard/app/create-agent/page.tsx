@@ -22,6 +22,7 @@ function BackButton() {
 import { SECRETAI_KEY_STORAGE_KEY } from "@/components/ui/GoogleSignInButton";
 import FoundryNav from "@/components/homepage/foundry/FoundryNav";
 import { StatusPill, type StatusKind } from "@/components/StatusPill";
+import { SaveKeyModal, type AnthropicKeyView } from "@/components/anthropic/SaveKeyModal";
 import { SECRETAI_MODELS, DEFAULT_SECRETAI_MODEL } from "@/lib/types";
 
 interface AiModel { key: string; name: string; }
@@ -186,6 +187,17 @@ export default function CreateAgentPage() {
   const [secretaiModel, setSecretaiModel] = useState<string>(DEFAULT_SECRETAI_MODEL);
   const [secretaiKey, setSecretaiKey] = useState("");
   const [anthropicKey, setAnthropicKey] = useState("");
+  // Saved Anthropic keys. null = still loading; [] = none saved yet.
+  const [savedKeys, setSavedKeys] = useState<AnthropicKeyView[] | null>(null);
+  // The chosen saved key's id, or null when entering a key manually.
+  const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
+  // Save-key popup: shown once a freshly-typed key validates.
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [savingKey, setSavingKey] = useState(false);
+  const [saveKeyError, setSaveKeyError] = useState<string | null>(null);
+  // Last-4 hint the user explicitly declined to save — so we don't re-nag on
+  // every re-validation of the same key.
+  const [dismissedSaveHint, setDismissedSaveHint] = useState<string | null>(null);
   const [telegramChoice, setTelegramChoice] = useState<TelegramChoice>("skipped");
   const [botToken, setBotToken] = useState("");
   const [chatId, setChatId] = useState("");
@@ -243,6 +255,17 @@ export default function CreateAgentPage() {
       })
       .catch(() => setSubscriptionStatus("none"));
 
+    void fetch("/api/anthropic-keys")
+      .then((r) => (r.ok ? r.json() : { keys: [] }))
+      .then((d: { keys?: AnthropicKeyView[] }) => {
+        const keys = d.keys ?? [];
+        setSavedKeys(keys);
+        // Default to the most recently saved key so returning users don't have
+        // to re-enter anything; manual entry stays one click away.
+        if (keys.length > 0) setSelectedKeyId(keys[keys.length - 1].id);
+      })
+      .catch(() => setSavedKeys([]));
+
     void fetch("/api/aimodels")
       .then((r) => r.json())
       .then((d: { models?: AiModel[] }) => {
@@ -281,7 +304,10 @@ export default function CreateAgentPage() {
 
   const usingLinkedKey = portalLink?.linked === true && secretaiKey.trim() === "";
   const secretaiValid = usingLinkedKey || secretaiState.kind === "valid";
-  const anthropicValid = tier === "secret" ? true : anthropicState.kind === "valid";
+  // A selected saved key was already validated at save time, so it counts as
+  // valid; otherwise a manually-typed key must pass live validation.
+  const anthropicValid =
+    tier === "secret" ? true : selectedKeyId ? true : anthropicState.kind === "valid";
   const telegramValid =
     telegramChoice === "skipped" || (telegramChoice === "enabled" && telegramState.kind === "valid");
   const canForge = secretaiValid && anthropicValid && telegramValid && subscriptionStatus === "active";
@@ -364,6 +390,14 @@ export default function CreateAgentPage() {
       const body = (await res.json()) as { valid: boolean; error?: string; detail?: string; status?: number };
       if (body.valid) {
         result = { kind: "valid", message: "Valid" };
+        // Offer to save a freshly-entered key — but only if it isn't already
+        // one of the user's saved keys (matched by its last-4 hint).
+        const hint = trimmed.slice(-4);
+        const alreadySaved = (savedKeys ?? []).some((k) => k.keyHint === hint);
+        if (!alreadySaved && hint !== dismissedSaveHint) {
+          setSaveKeyError(null);
+          setShowSavePrompt(true);
+        }
       } else {
         result = {
           kind: "invalid",
@@ -376,6 +410,36 @@ export default function CreateAgentPage() {
     }
     setAnthropicState(result);
     return result;
+  }
+
+  async function saveAnthropicKey(name: string): Promise<void> {
+    setSavingKey(true);
+    setSaveKeyError(null);
+    try {
+      const res = await fetch("/api/anthropic-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, apiKey: anthropicKey.trim() }),
+      });
+      const body = (await res.json()) as { key?: AnthropicKeyView; error?: string };
+      if (!res.ok || !body.key) {
+        setSaveKeyError(body.error || "Could not save the key. Try again.");
+        setSavingKey(false);
+        return;
+      }
+      const saved = body.key;
+      setSavedKeys((prev) => [...(prev ?? []), saved]);
+      // Switch to the newly-saved key: clears the raw input so submit references
+      // it by id and the key material never leaves the server again.
+      setSelectedKeyId(saved.id);
+      setAnthropicKey("");
+      setAnthropicState({ kind: "idle" });
+      setShowSavePrompt(false);
+    } catch (err) {
+      setSaveKeyError(err instanceof Error ? err.message : "Network error");
+    } finally {
+      setSavingKey(false);
+    }
   }
 
   async function validateTelegram(): Promise<ValidationState> {
@@ -479,7 +543,7 @@ export default function CreateAgentPage() {
         : validateSecretai();
 
     const anthropicP: Promise<ValidationState> =
-      tier !== "byo"
+      tier !== "byo" || selectedKeyId
         ? Promise.resolve({ kind: "valid" })
         : anthropicState.kind === "valid"
           ? Promise.resolve(anthropicState)
@@ -532,7 +596,8 @@ export default function CreateAgentPage() {
           // stored key so it never round-trips through the browser.
           secretaiApiKey: usingLinkedKey ? undefined : secretaiKey.trim(),
           secretaiModel: tier === "secret" ? secretaiModel : undefined,
-          anthropicApiKey: tier === "byo" ? anthropicKey.trim() : undefined,
+          anthropicApiKey: tier === "byo" && !selectedKeyId ? anthropicKey.trim() : undefined,
+          anthropicKeyId: tier === "byo" && selectedKeyId ? selectedKeyId : undefined,
           telegramEnabled: telegramChoice === "enabled",
           telegramBotToken: telegramChoice === "enabled" ? botToken.trim() : undefined,
           telegramChatId: telegramChoice === "enabled" ? chatId.trim() : undefined,
@@ -713,32 +778,108 @@ export default function CreateAgentPage() {
               id="section-anthropic"
               index={3}
               title="Anthropic API Key"
-              helper="Your Anthropic key powers Claude Sonnet 4.6 inference. It's baked into the agent's config inside your attested VM — Anthropic sees the inference, the wizard never persists the key."
-              status={anthropicState.kind === "idle" ? undefined : anthropicState}
+              helper="Your Anthropic key powers Claude Sonnet 4.6 inference. It's baked into the agent's config inside your attested VM. Save a key to reuse it across deployments — it's stored encrypted at rest."
+              status={
+                selectedKeyId
+                  ? { kind: "valid", message: "Saved key" }
+                  : anthropicState.kind === "idle" ? undefined : anthropicState
+              }
               invalid={showInvalidHighlights && !anthropicValid}
             >
-              <ForgeInput
-                type="text"
-                placeholder="sk-ant-..."
-                value={anthropicKey}
-                onChange={(e) => {
-                  setAnthropicKey(e.target.value);
-                  if (anthropicState.kind !== "idle") setAnthropicState({ kind: "idle" });
-                }}
-                onBlur={() => void validateAnthropic()}
-                invalid={anthropicState.kind === "invalid"}
-              />
-              <p className="mt-2 text-[11px]" style={{ color: "var(--cast-dim)" }}>
-                <a
-                  href="https://console.anthropic.com/settings/keys"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:underline"
-                  style={{ color: "var(--ember2)" }}
-                >
-                  Get an Anthropic API key →
-                </a>
-              </p>
+              {(savedKeys?.length ?? 0) > 0 ? (
+                <div className="mb-4 flex flex-col gap-2">
+                  {(savedKeys ?? []).map((k) => {
+                    const active = selectedKeyId === k.id;
+                    return (
+                      <button
+                        key={k.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedKeyId(k.id);
+                          setAnthropicKey("");
+                          setAnthropicState({ kind: "idle" });
+                          setShowSavePrompt(false);
+                        }}
+                        className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors"
+                        style={{
+                          background: "var(--iron)",
+                          borderColor: active ? "var(--molten)" : "var(--bronze)",
+                        }}
+                      >
+                        <span className="flex flex-col gap-0.5 min-w-0">
+                          <span className="text-sm font-medium truncate" style={{ color: "var(--cast)" }}>{k.name}</span>
+                          <span className="text-[11px] font-mono" style={{ color: "var(--cast-dimmer)" }}>sk-ant-…{k.keyHint}</span>
+                        </span>
+                        <span
+                          className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border text-[10px]"
+                          style={{
+                            borderColor: active ? "var(--molten)" : "var(--bronze)",
+                            background: active ? "var(--molten)" : "transparent",
+                            color: active ? "#000" : "transparent",
+                          }}
+                        >
+                          ✓
+                        </span>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedKeyId(null);
+                      setAnthropicState({ kind: "idle" });
+                    }}
+                    className="flex items-center gap-2 rounded-lg border border-dashed px-4 py-3 text-left text-sm transition-colors"
+                    style={{
+                      borderColor: selectedKeyId === null ? "var(--molten)" : "var(--bronze)",
+                      color: selectedKeyId === null ? "var(--cast)" : "var(--cast-dim)",
+                    }}
+                  >
+                    <span style={{ fontSize: "15px", lineHeight: 1 }}>+</span>
+                    Add a new key
+                  </button>
+                </div>
+              ) : null}
+
+              {selectedKeyId === null ? (
+                <>
+                  <ForgeInput
+                    type="text"
+                    placeholder="sk-ant-..."
+                    value={anthropicKey}
+                    onChange={(e) => {
+                      setAnthropicKey(e.target.value);
+                      if (anthropicState.kind !== "idle") setAnthropicState({ kind: "idle" });
+                    }}
+                    onBlur={() => void validateAnthropic()}
+                    invalid={anthropicState.kind === "invalid"}
+                  />
+                  <p className="mt-2 text-[11px]" style={{ color: "var(--cast-dim)" }}>
+                    <a
+                      href="https://console.anthropic.com/settings/keys"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:underline"
+                      style={{ color: "var(--ember2)" }}
+                    >
+                      Get an Anthropic API key →
+                    </a>
+                  </p>
+                </>
+              ) : null}
+
+              {showSavePrompt ? (
+                <SaveKeyModal
+                  keyHint={anthropicKey.trim().slice(-4)}
+                  busy={savingKey}
+                  error={saveKeyError}
+                  onSave={(name) => void saveAnthropicKey(name)}
+                  onDismiss={() => {
+                    setDismissedSaveHint(anthropicKey.trim().slice(-4));
+                    setShowSavePrompt(false);
+                  }}
+                />
+              ) : null}
             </SectionShell>
           ) : (
             <SectionShell

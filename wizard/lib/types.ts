@@ -90,8 +90,12 @@ export interface FormSubmission {
   secretaiModel?: string;
   // Anthropic key is only required for BYO tier. Optional in the
   // FormSubmission type — the submit handler validates the tier-specific
-  // requirements server-side.
+  // requirements server-side. Either a raw key (anthropicApiKey) or a
+  // reference to a saved key (anthropicKeyId) satisfies the requirement.
   anthropicApiKey?: string;
+  // Id of one of the user's saved Anthropic keys. Resolved to plaintext
+  // server-side so the key material never round-trips through the browser.
+  anthropicKeyId?: string;
   telegramEnabled: boolean;
   telegramBotToken?: string;
   telegramChatId?: string;
