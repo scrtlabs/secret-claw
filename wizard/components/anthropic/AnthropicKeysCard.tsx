@@ -38,9 +38,9 @@ export function AnthropicKeysCard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, apiKey }),
       });
-      const body = (await res.json()) as { key?: AnthropicKeyView; error?: string };
+      const body = (await res.json().catch(() => ({}))) as { key?: AnthropicKeyView; error?: string };
       if (!res.ok || !body.key) {
-        setAddError(body.error || "Could not add the key.");
+        setAddError(body.error || `Could not add the key (${res.status}).`);
         return;
       }
       setKeys((prev) => [...(prev ?? []), body.key!]);
@@ -191,8 +191,8 @@ function KeyRow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: trimmed }),
       });
-      const body = (await res.json()) as { key?: AnthropicKeyView; error?: string };
-      if (!res.ok || !body.key) { setError(body.error || "Rename failed."); return; }
+      const body = (await res.json().catch(() => ({}))) as { key?: AnthropicKeyView; error?: string };
+      if (!res.ok || !body.key) { setError(body.error || `Rename failed (${res.status}).`); return; }
       onRenamed(body.key);
       setEditing(false);
     } catch (err) {

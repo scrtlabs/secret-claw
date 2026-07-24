@@ -421,9 +421,9 @@ export default function CreateAgentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, apiKey: anthropicKey.trim() }),
       });
-      const body = (await res.json()) as { key?: AnthropicKeyView; error?: string };
+      const body = (await res.json().catch(() => ({}))) as { key?: AnthropicKeyView; error?: string };
       if (!res.ok || !body.key) {
-        setSaveKeyError(body.error || "Could not save the key. Try again.");
+        setSaveKeyError(body.error || `Could not save the key (${res.status}). Try again.`);
         setSavingKey(false);
         return;
       }

@@ -33,7 +33,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (err instanceof DuplicateKeyNameError) {
       return NextResponse.json({ error: err.message }, { status: 409 });
     }
-    throw err;
+    console.error("anthropic-keys PATCH failed", err);
+    return NextResponse.json({ error: "Rename failed." }, { status: 500 });
   }
 }
 

@@ -55,6 +55,12 @@ export async function POST(request: Request) {
     if (err instanceof DuplicateKeyNameError) {
       return NextResponse.json({ error: err.message }, { status: 409 });
     }
-    throw err;
+    // Return JSON (not an empty 500 body) so the client can render a message.
+    // The most common cause here is a missing PORTAL_LINK_ENCRYPTION_KEY.
+    console.error("anthropic-keys POST failed", err);
+    const msg = err instanceof Error && /ENCRYPTION_KEY/.test(err.message)
+      ? "Key storage is not configured on the server."
+      : "Could not save the key.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
