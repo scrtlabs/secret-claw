@@ -144,14 +144,23 @@ export interface CreatedSubscription {
   nextChargeDate?: string;
 }
 
+// BlueSnap error responses carry details under `message: [{ code, description }]`.
+interface BsErrorBody {
+  message?: Array<{ errorName?: string; code?: string; description?: string }>;
+}
+
+export type CreateSubscriptionResult =
+  | { ok: true; subscription: CreatedSubscription }
+  | { ok: false; error: string; status: number };
+
 export async function createSubscription(opts: {
   pfToken: string;
   email: string;
   firstName: string;
   lastName: string;
   planId: string;
-}): Promise<CreatedSubscription | null> {
-  const result = await bsRequest<BsSubscription>(
+}): Promise<CreateSubscriptionResult> {
+  const result = await bsRequest<BsSubscription & BsErrorBody>(
     "/services/2/recurring/subscriptions",
     "POST",
     {
@@ -168,13 +177,24 @@ export async function createSubscription(opts: {
       },
     },
   );
-  if (!result.ok || !result.data?.subscriptionId) return null;
+  if (!result.ok || !result.data?.subscriptionId) {
+    const detail = result.data?.message?.[0]?.description;
+    const status = !result.ok && result.status >= 400 ? result.status : 502;
+    return {
+      ok: false,
+      error: detail || "BlueSnap subscription creation failed",
+      status,
+    };
+  }
   const d = result.data;
   return {
-    subscriptionId: String(d.subscriptionId),
-    vaultedShopperId: String(d.vaultedShopperId ?? ""),
-    status: mapBsStatus(d.status ?? ""),
-    nextChargeDate: d.nextChargeDate,
+    ok: true,
+    subscription: {
+      subscriptionId: String(d.subscriptionId),
+      vaultedShopperId: String(d.vaultedShopperId ?? ""),
+      status: mapBsStatus(d.status ?? ""),
+      nextChargeDate: d.nextChargeDate,
+    },
   };
 }
 

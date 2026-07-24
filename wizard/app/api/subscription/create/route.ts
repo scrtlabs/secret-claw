@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const planId = await getOrCreateProPlanId();
   if (!planId) return NextResponse.json({ error: "Plan not configured" }, { status: 503 });
 
-  const created = await createSubscription({
+  const result = await createSubscription({
     pfToken: body.pfToken,
     email: user.email,
     firstName: body.firstName || "SecretForge",
@@ -34,9 +34,14 @@ export async function POST(request: Request) {
     planId,
   });
 
-  if (!created) {
-    return NextResponse.json({ error: "BlueSnap subscription creation failed" }, { status: 502 });
+  if (!result.ok) {
+    if (result.status === 401 || result.status === 403) {
+      return NextResponse.json({ error: "Payment service unavailable" }, { status: 503 });
+    }
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
+
+  const created = result.subscription;
 
   // Always set trialEndsAt — BlueSnap sometimes returns ACTIVE instead of TRIAL
   // for new subscriptions that include a trial period.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { useSession } from "next-auth/react";
@@ -66,19 +66,28 @@ export default function SubscribePage() {
     if (sessionStatus === "unauthenticated") router.replace("/sign-in");
   }, [sessionStatus, router]);
 
-  // Fetch pfToken + planId + sdkUrl
+  const mintToken = useCallback(async () => {
+    hpfInitialized.current = false;
+    setPfToken(null);
+    const r = await fetch("/api/subscription/checkout", { method: "POST" });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error ?? "Failed to init checkout");
+    setPlanId(d.planId as string);
+    setSdkSrc(d.sdkUrl as string);
+    setPfToken(d.pfToken as string);
+  }, []);
+
+  // Fetch pfToken on mount
   useEffect(() => {
     if (sessionStatus !== "authenticated") return;
-    fetch("/api/subscription/checkout", { method: "POST" })
-      .then(async (r) => {
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error ?? "Failed to init checkout");
-        setPfToken(d.pfToken as string);
-        setPlanId(d.planId as string);
-        setSdkSrc(d.sdkUrl as string);
-      })
-      .catch(() => setStage("error"));
-  }, [sessionStatus]);
+    mintToken().catch(() => setStage("error"));
+  }, [sessionStatus, mintToken]);
+
+  const resetForRetry = useCallback((message: string) => {
+    setSubmitError(message);
+    setStage("loading");
+    mintToken().catch(() => setStage("error"));
+  }, [mintToken]);
 
   // Initialize HPF when both token and SDK are ready.
   // Wait one paint cycle (setTimeout 0) after divs appear — matches devportal pattern.
@@ -155,16 +164,19 @@ export default function SubscribePage() {
             }),
           });
           const body = await res.json();
+          if (res.status === 409) {
+            setStage("success");
+            setTimeout(() => router.push("/agents?subscribed=true"), 1500);
+            return;
+          }
           if (!res.ok) {
-            setSubmitError((body as { error?: string }).error ?? "Subscription failed — please try again.");
-            setStage("ready");
+            resetForRetry((body as { error?: string }).error ?? "Subscription failed — please try again.");
             return;
           }
           setStage("success");
           setTimeout(() => router.push("/agents?subscribed=true"), 1500);
         } catch {
-          setSubmitError("Network error — please try again.");
-          setStage("ready");
+          resetForRetry("Network error — please try again.");
         }
       },
       (errors: Array<{ errorCode: string; errorDescription: string }>) => {
