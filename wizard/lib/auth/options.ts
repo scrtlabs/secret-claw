@@ -208,8 +208,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // Portal sync for non-wallet users
-      if (email && !email.endsWith("@keplr.wallet") && !email.endsWith("@metamask.wallet")) {
+      if (email) {
         // Await with a 5-second ceiling so serverless functions don't terminate
         // before the sync resolves — pure fire-and-forget is unreliable there.
         await Promise.race([
