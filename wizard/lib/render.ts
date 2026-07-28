@@ -24,7 +24,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 import type { RenderConfig, RenderResult, Runtime, Tier } from "./types";
-import { DEFAULT_SECRETAI_MODEL, SECRETAI_MODELS } from "./types";
+import { DEFAULT_SECRETAI_MODEL } from "./types";
 
 function resolveTemplatesRoot(): string {
   if (process.env.SECRET_CLAW_TEMPLATES_DIR) {
@@ -399,13 +399,10 @@ export function render(config: RenderConfig): RenderResult {
   const gatewayToken = (config.gatewayToken || crypto.randomBytes(32).toString("hex")).trim();
   const welcomeAtIso = config.welcomeAtIso || deriveWelcomeAtIso();
 
-  // Resolve and validate the Secret-tier model. Whitelist only — guards
-  // against arbitrary user input ending up as the provider's `default`
-  // model id (or as a substring in tool messages). Ignored for BYO tier.
   const secretaiModel = (config.secretaiModel || DEFAULT_SECRETAI_MODEL).trim();
-  if (tier === "secret" && !SECRETAI_MODELS.some((m) => m.id === secretaiModel)) {
+  if (tier === "secret" && !/^[a-zA-Z0-9._:-]{1,64}$/.test(secretaiModel)) {
     throw new Error(
-      `render.ts: secretaiModel ${JSON.stringify(secretaiModel)} not in allowed list (${SECRETAI_MODELS.map((m) => m.id).join(", ")})`,
+      `render.ts: secretaiModel ${JSON.stringify(secretaiModel)} has an invalid format`,
     );
   }
 

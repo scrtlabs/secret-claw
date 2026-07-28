@@ -25,6 +25,23 @@ function timeoutSignal(ms: number): AbortSignal {
   return controller.signal;
 }
 
+export async function fetchSecretaiModelIds(): Promise<string[] | null> {
+  try {
+    const res = await fetch(`${portalBaseUrl()}/api/aimodels`, {
+      headers: { Accept: "application/json" },
+      signal: timeoutSignal(DEFAULT_FETCH_TIMEOUT_MS),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { models?: Array<{ key?: string }> };
+    const ids = (data.models ?? [])
+      .map((m) => (typeof m.key === "string" ? m.key.trim() : ""))
+      .filter((k) => k.length > 0);
+    return ids.length > 0 ? ids : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface ValidateKeyResult {
   valid: boolean;
   status: number;

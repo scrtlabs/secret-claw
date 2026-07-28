@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 
 import { db } from "@/lib/db";
 import { render } from "@/lib/render";
-import { createVm, getJobStatus } from "@/lib/portal-client";
+import { createVm, getJobStatus, fetchSecretaiModelIds } from "@/lib/portal-client";
 import { resolvePortalApiKey } from "@/lib/portal-link/resolve";
 import { getAnthropicKeyPlaintext } from "@/lib/anthropic-keys/store";
 import { getSessionUser } from "@/lib/auth/session";
@@ -93,15 +93,17 @@ export async function POST(request: Request) {
     }
   }
 
-  // Resolve and validate the Secret-tier model. Whitelist enforcement
-  // happens in render() too, but failing fast here gives the client a
-  // clean 400 instead of a 500 from a deferred validation error.
   let secretaiModel: string | undefined;
   if (tier === "secret") {
     secretaiModel = (body.secretaiModel || DEFAULT_SECRETAI_MODEL).trim();
-    if (!SECRETAI_MODELS.some((m) => m.id === secretaiModel)) {
+    const liveIds = await fetchSecretaiModelIds();
+    const allowed = new Set<string>([
+      ...SECRETAI_MODELS.map((m) => m.id),
+      ...(liveIds ?? []),
+    ]);
+    if (!allowed.has(secretaiModel)) {
       return NextResponse.json(
-        { error: `secretaiModel must be one of ${SECRETAI_MODELS.map((m) => m.id).join(", ")}` },
+        { error: `secretaiModel must be one of ${[...allowed].join(", ")}` },
         { status: 400 },
       );
     }

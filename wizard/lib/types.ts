@@ -53,14 +53,10 @@ export interface RenderConfig {
   welcomeAtIso?: string;
 }
 
-// Allowed Secret-tier models on the rytn endpoint. Default first.
-// gemma4:31b is the only one verified end-to-end with structured
-// tool_calls; qwq and qwen3-vl are exposed for power users who want
-// to experiment — see the per-runtime caveats in the wizard form.
 export const SECRETAI_MODELS = [
   { id: "gemma4:31b", label: "gemma4:31b (default, tool-capable)" },
-  { id: "qwq:32b", label: "qwq:32b (reasoning; experimental)" },
-  { id: "qwen3-vl:32b", label: "qwen3-vl:32b (vision-language; experimental)" },
+  { id: "gpt-oss:120b", label: "gpt-oss:120b (experimental)" },
+  { id: "qwen3.6:27b", label: "qwen3.6:27b (experimental)" },
 ] as const;
 export const DEFAULT_SECRETAI_MODEL = SECRETAI_MODELS[0].id;
 
