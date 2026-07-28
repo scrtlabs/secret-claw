@@ -24,7 +24,12 @@ function checkBasicAuth(req: NextRequest): boolean {
 }
 
 export default function middleware(req: NextRequest, event: NextFetchEvent) {
-  if (BASIC_AUTH_USER && BASIC_AUTH_PASSWORD && !checkBasicAuth(req)) {
+  const { pathname } = req.nextUrl;
+
+  const authHeader = req.headers.get("authorization") || "";
+  const bypassBasicAuth = pathname.startsWith("/api/") && authHeader.startsWith("Bearer ");
+
+  if (BASIC_AUTH_USER && BASIC_AUTH_PASSWORD && !bypassBasicAuth && !checkBasicAuth(req)) {
     return new NextResponse("Authentication required", {
       status: 401,
       headers: { "WWW-Authenticate": 'Basic realm="Restricted"' },
@@ -33,7 +38,6 @@ export default function middleware(req: NextRequest, event: NextFetchEvent) {
 
   // Wizard pages additionally require a next-auth session; /auth-relay must
   // remain public (the popup lands there).
-  const { pathname } = req.nextUrl;
   if (pathname === "/create-agent" || pathname.startsWith("/create-agent/")) {
     return (authMiddleware as any)(req, event);
   }
