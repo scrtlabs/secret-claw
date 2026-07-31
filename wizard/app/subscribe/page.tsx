@@ -61,6 +61,17 @@ export default function SubscribePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const hpfInitialized = useRef(false);
 
+  const nextRef = useRef<string>("/agents?subscribed=true");
+  useEffect(() => {
+    try {
+      const raw = new URLSearchParams(window.location.search).get("next");
+      // Only accept same-origin relative paths to avoid open-redirects.
+      if (raw && raw.startsWith("/") && !raw.startsWith("//")) nextRef.current = raw;
+    } catch {
+      // Malformed query string; keep the default.
+    }
+  }, []);
+
   // Redirect to sign-in if not authenticated
   useEffect(() => {
     if (sessionStatus === "unauthenticated") router.replace("/sign-in");
@@ -166,7 +177,7 @@ export default function SubscribePage() {
           const body = await res.json();
           if (res.status === 409) {
             setStage("success");
-            setTimeout(() => router.push("/agents?subscribed=true"), 1500);
+            setTimeout(() => router.push(nextRef.current), 1500);
             return;
           }
           if (!res.ok) {
@@ -174,7 +185,7 @@ export default function SubscribePage() {
             return;
           }
           setStage("success");
-          setTimeout(() => router.push("/agents?subscribed=true"), 1500);
+          setTimeout(() => router.push(nextRef.current), 1500);
         } catch {
           resetForRetry("Network error — please try again.");
         }
@@ -201,7 +212,9 @@ export default function SubscribePage() {
             <div className="mb-4 text-4xl">✓</div>
             <h2 className="text-xl font-black mb-2" style={{ color: "var(--cast)" }}>You&apos;re in.</h2>
             <p className="text-sm" style={{ color: "var(--cast-dim)" }}>
-              Redirecting to your dashboard…
+              {nextRef.current.startsWith("/create-agent")
+                ? "Taking you back to finish your agent…"
+                : "Redirecting to your dashboard…"}
             </p>
           </div>
         ) : (

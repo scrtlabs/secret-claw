@@ -27,6 +27,25 @@ import { SECRETAI_MODELS, DEFAULT_SECRETAI_MODEL } from "@/lib/types";
 
 interface AiModel { key: string; name: string; }
 
+// A new user who fills out this form but has no subscription is sent to
+// /subscribe. We stash the in-progress form here first so that, on return, the
+// page rehydrates every field instead of the user landing on an empty form (or
+// the dashboard) with their work lost. Session-scoped: cleared once consumed.
+const AGENT_DRAFT_STORAGE_KEY = "secretforge:agent-draft";
+
+interface AgentDraft {
+  runtime: Runtime;
+  tier: Tier;
+  secretaiModel: string;
+  secretaiKey: string;
+  anthropicKey: string;
+  selectedKeyId: string | null;
+  telegramChoice: TelegramChoice;
+  botToken: string;
+  chatId: string;
+  botUsername?: string;
+}
+
 type ValidationState = {
   kind: StatusKind;
   message?: string;
@@ -227,9 +246,38 @@ export default function CreateAgentPage() {
   // "loading" while we check | "active" | "none"
   const [subscriptionStatus, setSubscriptionStatus] = useState<"loading" | "active" | "none">("loading");
 
+  const [pendingAutoForge, setPendingAutoForge] = useState(false);
+  const autoForgeFired = useRef(false);
+  // True while we validate the form before sending the user to checkout.
+  const [preparingCheckout, setPreparingCheckout] = useState(false);
+
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
+    let restoredDraft = false;
+    try {
+      const rawDraft = sessionStorage.getItem(AGENT_DRAFT_STORAGE_KEY);
+      if (rawDraft) {
+        sessionStorage.removeItem(AGENT_DRAFT_STORAGE_KEY);
+        const d = JSON.parse(rawDraft) as Partial<AgentDraft>;
+        if (d.runtime === "openclaw" || d.runtime === "hermes") setRuntime(d.runtime);
+        if (d.tier === "byo" || d.tier === "secret") setTier(d.tier);
+        if (typeof d.secretaiModel === "string") setSecretaiModel(d.secretaiModel);
+        if (typeof d.secretaiKey === "string") setSecretaiKey(d.secretaiKey);
+        if (typeof d.anthropicKey === "string") setAnthropicKey(d.anthropicKey);
+        if (d.selectedKeyId === null || typeof d.selectedKeyId === "string") setSelectedKeyId(d.selectedKeyId);
+        if (d.telegramChoice === "enabled" || d.telegramChoice === "skipped" || d.telegramChoice === null) {
+          setTelegramChoice(d.telegramChoice);
+        }
+        if (typeof d.botToken === "string") setBotToken(d.botToken);
+        if (typeof d.chatId === "string") setChatId(d.chatId);
+        if (typeof d.botUsername === "string") setBotUsername(d.botUsername);
+        restoredDraft = true;
+      }
+    } catch {
+      // Corrupt/absent draft; fall through to a fresh form.
+    }
+
     try {
       const stashed = sessionStorage.getItem(SECRETAI_KEY_STORAGE_KEY);
       if (stashed) {
@@ -245,6 +293,9 @@ export default function CreateAgentPage() {
       if (r === "openclaw" || r === "hermes") setRuntime(r);
       const t = params.get("tier");
       if (t === "byo" || t === "secret") setTier(t);
+      // Returning from a successful subscription with a draft in hand: once the
+      // subscription check below flips to "active", auto-submit the form.
+      if (restoredDraft && params.get("subscribed") === "true") setPendingAutoForge(true);
     } catch {
       // Malformed/absent query string; keep defaults.
     }
@@ -531,10 +582,12 @@ export default function CreateAgentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [awaitingChat, telegramChoice]);
 
-  async function onSubmit() {
-    setSubmitError(null);
+  // Validate every field section (reusing already-passed results where we can),
+  // flag the sections visually, and return the id of the first one still
+  // invalid — or null when the whole form is good. Shared by the Forge button
+  // and the "Start free trial" button so both gate on the same checks.
+  async function validateSections(): Promise<string | null> {
     setShowInvalidHighlights(true);
-    setSubmitting(true);
 
     const secretaiP: Promise<ValidationState> = usingLinkedKey
       ? Promise.resolve({ kind: "valid" })
@@ -573,15 +626,25 @@ export default function CreateAgentPage() {
       telegramP,
     ]);
 
-    let target: string | null = null;
-    if (secretaiResult.kind !== "valid") target = "section-secretai";
-    else if (tier === "byo" && anthropicResult.kind !== "valid") target = "section-anthropic";
-    else if (telegramResult.kind !== "valid") target = "section-telegram";
+    if (secretaiResult.kind !== "valid") return "section-secretai";
+    if (tier === "byo" && anthropicResult.kind !== "valid") return "section-anthropic";
+    if (telegramResult.kind !== "valid") return "section-telegram";
+    return null;
+  }
 
+  function scrollToSection(id: string) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function onSubmit() {
+    setSubmitError(null);
+    setSubmitting(true);
+
+    const target = await validateSections();
     if (target) {
       setSubmitting(false);
-      const el = document.getElementById(target);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      scrollToSection(target);
       return;
     }
 
@@ -624,6 +687,40 @@ export default function CreateAgentPage() {
       setSubmitting(false);
     }
   }
+
+  async function goToSubscribe() {
+    setSubmitError(null);
+    setPreparingCheckout(true);
+
+    const target = await validateSections();
+    if (target) {
+      setPreparingCheckout(false);
+      scrollToSection(target);
+      return;
+    }
+
+    try {
+      const draft: AgentDraft = {
+        runtime, tier, secretaiModel,
+        secretaiKey, anthropicKey, selectedKeyId,
+        telegramChoice, botToken, chatId, botUsername,
+      };
+      sessionStorage.setItem(AGENT_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    } catch {
+      // If we can't stash the draft, the user still reaches checkout — they'll
+      // just re-enter the form afterward, which is the pre-existing behavior.
+    }
+    router.push("/subscribe?next=" + encodeURIComponent("/create-agent?subscribed=true"));
+  }
+
+  useEffect(() => {
+    if (!pendingAutoForge || autoForgeFired.current) return;
+    if (subscriptionStatus !== "active") return;
+    autoForgeFired.current = true;
+    setPendingAutoForge(false);
+    void onSubmit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAutoForge, subscriptionStatus]);
 
   return (
     <div className="fg-page">
@@ -1047,27 +1144,43 @@ export default function CreateAgentPage() {
                   <p className="text-xs mb-3" style={{ color: "var(--cast-dim)" }}>
                     Deploy agents with a SecretForge Pro plan. 7-day free trial, $29/month after.
                   </p>
-                  <a href="/subscribe" className="fgbtn inline-block" style={{ padding: "10px 20px", fontSize: "13px" }}>
-                    Start free trial →
-                  </a>
+                  <button
+                    type="button"
+                    onClick={() => void goToSubscribe()}
+                    disabled={preparingCheckout}
+                    className={`fgbtn inline-block ${preparingCheckout ? "fgbtn--idle" : ""}`}
+                    style={{ padding: "10px 20px", fontSize: "13px" }}
+                  >
+                    {preparingCheckout ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Checking…
+                      </span>
+                    ) : "Start free trial →"}
+                  </button>
                 </div>
               )}
               {submitError ? (
                 <p className="text-xs text-red-400">{submitError}</p>
               ) : null}
-              <button
-                type="submit"
-                disabled={submitting || !canForge}
-                className={`fgbtn self-start ${submitting || !canForge ? "fgbtn--idle" : ""}`}
-                onClick={() => void onSubmit()}
-              >
-                {submitting ? (
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Forging…
-                  </span>
-                ) : "Forge agent →"}
-              </button>
+              {/* Once the trial CTA is showing (no subscription), it's the only
+                  action — hide the Forge button so there aren't two competing
+                  primaries. The Forge button returns as soon as the plan is active. */}
+              {subscriptionStatus !== "none" ? (
+                <button
+                  type="submit"
+                  disabled={submitting || !canForge}
+                  className={`fgbtn self-start ${submitting || !canForge ? "fgbtn--idle" : ""}`}
+                  onClick={() => void onSubmit()}
+                >
+                  {submitting ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Forging…
+                    </span>
+                  ) : "Forge agent →"}
+                </button>
+              ) : null}
               {showInvalidHighlights && firstInvalidId() ? (
                 <p className="text-xs" style={{ color: "var(--ember2)" }}>
                   Some sections still need attention — we've scrolled to the first one.
