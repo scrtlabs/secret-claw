@@ -355,6 +355,7 @@ export default function CreateAgentPage() {
 
   const usingLinkedKey = portalLink?.linked === true && secretaiKey.trim() === "";
   const secretaiValid = usingLinkedKey || secretaiState.kind === "valid";
+  const hidePortalSection = usingLinkedKey;
   // A selected saved key was already validated at save time, so it counts as
   // valid; otherwise a manually-typed key must pass live validation.
   const anthropicValid =
@@ -789,6 +790,7 @@ export default function CreateAgentPage() {
             </div>
           </SectionShell>
 
+          {hidePortalSection ? null : (
           <SectionShell
             id="section-secretai"
             index={2}
@@ -869,11 +871,12 @@ export default function CreateAgentPage() {
               </>
             )}
           </SectionShell>
+          )}
 
           {tier === "byo" ? (
             <SectionShell
               id="section-anthropic"
-              index={3}
+              index={hidePortalSection ? 2 : 3}
               title="Anthropic API Key"
               helper="Your Anthropic key powers Claude Sonnet 4.6 inference. It's baked into the agent's config inside your attested VM. Save a key to reuse it across deployments — it's stored encrypted at rest."
               status={
@@ -981,9 +984,9 @@ export default function CreateAgentPage() {
           ) : (
             <SectionShell
               id="section-anthropic"
-              index={3}
+              index={hidePortalSection ? 2 : 3}
               title="Inference"
-              helper="Secret tier runs inference on SecretAI's attested rytn endpoint. Uses the same SecretAI key from Section 2; no separate API key needed. Pick a model — gemma4:31b is the verified default; the others are experimental (tool-call quirks possible)."
+              helper="Secret tier runs inference on SecretAI's attested rytn endpoint. Uses your SecretAI portal key, synced automatically at sign-in; no separate API key needed. Pick a model — gemma4:31b is the verified default; the others are experimental (tool-call quirks possible)."
             >
               <div className="flex flex-col gap-2">
                 <span
@@ -1017,7 +1020,7 @@ export default function CreateAgentPage() {
 
           <SectionShell
             id="section-telegram"
-            index={4}
+            index={hidePortalSection ? 3 : 4}
             title="Telegram (optional)"
             helper="Connect Telegram to let your agent message you proactively — daily news brief, evening crypto summary, welcome message. Without Telegram, your agent is reachable only through its web URL."
             status={telegramPillStatus()}
@@ -1131,7 +1134,7 @@ export default function CreateAgentPage() {
             ) : null}
           </SectionShell>
 
-          <SectionShell id="section-submit" index={5} title="Forge your agent">
+          <SectionShell id="section-submit" index={hidePortalSection ? 4 : 5} title="Forge your agent">
             <div className="flex flex-col gap-3">
               {subscriptionStatus === "none" && (
                 <div
