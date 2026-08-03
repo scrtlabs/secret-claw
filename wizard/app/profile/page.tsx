@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -66,14 +66,19 @@ export default function ProfilePage() {
     if (sessionStatus === "unauthenticated") router.replace("/sign-in");
   }, [sessionStatus, router]);
 
-  useEffect(() => {
-    if (sessionStatus !== "authenticated") return;
-    fetch("/api/subscription")
+  const loadSub = useCallback(() => {
+    setSubLoading(true);
+    return fetch("/api/subscription")
       .then((r) => r.json())
       .then((d) => setSub(d as SubData))
       .catch(() => setSub(null))
       .finally(() => setSubLoading(false));
-  }, [sessionStatus]);
+  }, []);
+
+  useEffect(() => {
+    if (sessionStatus !== "authenticated") return;
+    void loadSub();
+  }, [sessionStatus, loadSub]);
 
   async function handleCancel() {
     setCancelState("canceling");
@@ -280,6 +285,9 @@ export default function ProfilePage() {
           )}
         </div>
 
+        {/* Promo code redemption */}
+        {sessionStatus === "authenticated" && <PromoRedeemCard onRedeemed={loadSub} />}
+
         {/* API keys management */}
         {sessionStatus === "authenticated" && <AnthropicKeysCard />}
 
@@ -294,6 +302,76 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between text-sm">
       <span style={{ color: "var(--cast-dimmer)" }}>{label}</span>
       <span style={{ color: "var(--cast)" }}>{value}</span>
+    </div>
+  );
+}
+
+function PromoRedeemCard({ onRedeemed }: { onRedeemed: () => Promise<unknown> | void }) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  async function redeem(e: React.FormEvent) {
+    e.preventDefault();
+    if (!code.trim()) return;
+    setBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/promocodes/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { durationDays?: number; error?: string };
+      if (!res.ok) {
+        setError(body.error ?? `Could not redeem (${res.status}).`);
+        return;
+      }
+      setSuccess(
+        body.durationDays
+          ? `Redeemed — ${body.durationDays} days of free Pro access added.`
+          : "Promo code redeemed.",
+      );
+      setCode("");
+      await onRedeemed();
+    } catch {
+      setError("Network error — please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="rounded-[14px] border p-6 flex flex-col gap-4"
+      style={{ background: "linear-gradient(180deg, #1a1613, #141110)", borderColor: "var(--bronze)" }}
+    >
+      <p
+        className="text-[10px] uppercase tracking-widest"
+        style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
+      >
+        Promo code
+      </p>
+      <form onSubmit={redeem} className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <input
+          value={code}
+          onChange={(e) => { setCode(e.target.value); setError(null); setSuccess(null); }}
+          placeholder="Enter a promo code"
+          className="block w-full rounded-md border border-[var(--bronze)] px-3 py-2 text-sm placeholder:text-[var(--cast-dimmer)] focus:border-[var(--molten)] focus:outline-none focus:ring-1 focus:ring-[var(--molten)]/30"
+          style={{ background: "var(--iron)", color: "var(--cast)", textTransform: "uppercase" }}
+        />
+        <button
+          type="submit"
+          disabled={busy || !code.trim()}
+          className={`fgbtn whitespace-nowrap ${busy || !code.trim() ? "fgbtn--idle" : ""}`}
+        >
+          {busy ? "Redeeming…" : "Redeem"}
+        </button>
+      </form>
+      {error && <p className="text-xs" style={{ color: "#ef4444" }}>{error}</p>}
+      {success && <p className="text-xs" style={{ color: "var(--verify)" }}>{success}</p>}
     </div>
   );
 }

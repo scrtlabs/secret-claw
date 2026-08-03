@@ -246,19 +246,18 @@ export default function CreateAgentPage() {
   // "loading" while we check | "active" | "none"
   const [subscriptionStatus, setSubscriptionStatus] = useState<"loading" | "active" | "none">("loading");
 
-  const [pendingAutoForge, setPendingAutoForge] = useState(false);
-  const autoForgeFired = useRef(false);
   // True while we validate the form before sending the user to checkout.
   const [preparingCheckout, setPreparingCheckout] = useState(false);
 
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    let restoredDraft = false;
+    // Restore a draft if we're back here after a failed forge on the subscribe
+    // page (the happy path forges on /subscribe and never lands here). Leave the
+    // draft in storage so a manual retry still has it if this attempt also fails.
     try {
       const rawDraft = sessionStorage.getItem(AGENT_DRAFT_STORAGE_KEY);
       if (rawDraft) {
-        sessionStorage.removeItem(AGENT_DRAFT_STORAGE_KEY);
         const d = JSON.parse(rawDraft) as Partial<AgentDraft>;
         if (d.runtime === "openclaw" || d.runtime === "hermes") setRuntime(d.runtime);
         if (d.tier === "byo" || d.tier === "secret") setTier(d.tier);
@@ -272,7 +271,6 @@ export default function CreateAgentPage() {
         if (typeof d.botToken === "string") setBotToken(d.botToken);
         if (typeof d.chatId === "string") setChatId(d.chatId);
         if (typeof d.botUsername === "string") setBotUsername(d.botUsername);
-        restoredDraft = true;
       }
     } catch {
       // Corrupt/absent draft; fall through to a fresh form.
@@ -293,9 +291,6 @@ export default function CreateAgentPage() {
       if (r === "openclaw" || r === "hermes") setRuntime(r);
       const t = params.get("tier");
       if (t === "byo" || t === "secret") setTier(t);
-      // Returning from a successful subscription with a draft in hand: once the
-      // subscription check below flips to "active", auto-submit the form.
-      if (restoredDraft && params.get("subscribed") === "true") setPendingAutoForge(true);
     } catch {
       // Malformed/absent query string; keep defaults.
     }
@@ -711,17 +706,10 @@ export default function CreateAgentPage() {
       // If we can't stash the draft, the user still reaches checkout — they'll
       // just re-enter the form afterward, which is the pre-existing behavior.
     }
-    router.push("/subscribe?next=" + encodeURIComponent("/create-agent?subscribed=true"));
+    // The subscribe page reads this draft and, on payment success, forges the
+    // agent and jumps to its details page — so we don't come back here.
+    router.push("/subscribe");
   }
-
-  useEffect(() => {
-    if (!pendingAutoForge || autoForgeFired.current) return;
-    if (subscriptionStatus !== "active") return;
-    autoForgeFired.current = true;
-    setPendingAutoForge(false);
-    void onSubmit();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingAutoForge, subscriptionStatus]);
 
   return (
     <div className="fg-page">

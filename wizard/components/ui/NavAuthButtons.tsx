@@ -12,6 +12,7 @@ interface NavAuthButtonsProps {
 export function NavAuthButtons({ size = "sm" }: NavAuthButtonsProps) {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,6 +24,18 @@ export function NavAuthButtons({ size = "sm" }: NavAuthButtonsProps) {
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, []);
+
+  // Reveal the Admin entry only for admins. Server endpoints re-check, so a
+  // non-admin forging this flag client-side gains nothing.
+  useEffect(() => {
+    if (status !== "authenticated") { setIsAdmin(false); return; }
+    let cancelled = false;
+    fetch("/api/admin/access")
+      .then((r) => (r.ok ? r.json() : { admin: false }))
+      .then((d: { admin?: boolean }) => { if (!cancelled) setIsAdmin(d.admin === true); })
+      .catch(() => { if (!cancelled) setIsAdmin(false); });
+    return () => { cancelled = true; };
+  }, [status]);
 
   const base =
     size === "sm"
@@ -94,6 +107,16 @@ export function NavAuthButtons({ size = "sm" }: NavAuthButtonsProps) {
               >
                 Profile
               </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2 text-sm transition-colors hover:bg-white/5"
+                  style={{ color: "var(--ember2)" }}
+                >
+                  Admin
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => { setOpen(false); signOut({ callbackUrl: "/" }); }}

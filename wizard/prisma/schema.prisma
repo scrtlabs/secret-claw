@@ -37,6 +37,7 @@ model User {
   email                    String        @unique
   sub                      String        @unique
   passwordHash             String?
+  admin                    Boolean       @default(false)
   emailConfirmed           Boolean       @default(false)
   emailConfirmationToken   String?       @unique
   emailConfirmationExpires DateTime?
@@ -46,6 +47,38 @@ model User {
   lastLogin                DateTime      @updatedAt
   agents                   Agent[]       @relation("UserAgents")
   subscription             Subscription?
+}
+
+// An admin-issued code that grants a free subscription for `durationDays`.
+model Promocode {
+  id             String    @id @default(cuid())
+  // Stored uppercased; matched case-insensitively at redemption.
+  code           String    @unique
+  description    String?
+  // Days of free Pro access granted on redemption.
+  durationDays   Int       @default(30)
+  // Total redemptions allowed across all users; null = unlimited.
+  maxRedemptions Int?
+  redeemedCount  Int       @default(0)
+  active         Boolean   @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  redemptions    PromoRedemption[]
+}
+
+model PromoRedemption {
+  id          String    @id @default(cuid())
+  promocodeId String
+  userSub     String
+  code        String
+  createdAt   DateTime  @default(now())
+
+  promocode   Promocode @relation(fields: [promocodeId], references: [id], onDelete: Cascade)
+
+  @@unique([promocodeId, userSub])
+  @@index([userSub])
 }
 
 model Subscription {

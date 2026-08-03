@@ -46,6 +46,32 @@ const FEATURES = [
 
 type Stage = "loading" | "ready" | "submitting" | "success" | "error";
 
+// Mirror of the draft the create-agent page stashes before sending an
+// unsubscribed user here. Kept in sync with AgentDraft in create-agent/page.tsx.
+const AGENT_DRAFT_STORAGE_KEY = "secretforge:agent-draft";
+interface AgentDraft {
+  runtime: "openclaw" | "hermes";
+  tier: "byo" | "secret";
+  secretaiModel: string;
+  secretaiKey: string;
+  anthropicKey: string;
+  selectedKeyId: string | null;
+  telegramChoice: "enabled" | "skipped" | null;
+  botToken: string;
+  chatId: string;
+  botUsername?: string;
+}
+
+function readAgentDraft(): AgentDraft | null {
+  try {
+    const raw = sessionStorage.getItem(AGENT_DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as AgentDraft;
+  } catch {
+    return null;
+  }
+}
+
 export default function SubscribePage() {
   const { status: sessionStatus } = useSession();
   const router = useRouter();
@@ -62,6 +88,10 @@ export default function SubscribePage() {
   const hpfInitialized = useRef(false);
 
   const nextRef = useRef<string>("/agents?subscribed=true");
+  // True when the user arrived mid-agent-creation (a draft is waiting). On
+  // success we forge that agent and jump straight to its details page instead
+  // of routing back through the create-agent form.
+  const [hasDraft, setHasDraft] = useState(false);
   useEffect(() => {
     try {
       const raw = new URLSearchParams(window.location.search).get("next");
@@ -70,7 +100,66 @@ export default function SubscribePage() {
     } catch {
       // Malformed query string; keep the default.
     }
+    setHasDraft(readAgentDraft() !== null);
   }, []);
+
+  // Forge the agent described by the stashed draft, returning its deployment id.
+  // Throws if the deployment request fails so the caller can fall back to the
+  // create-agent form (draft left intact) rather than dropping the user's work.
+  const forgeDraftAgent = useCallback(async (): Promise<string | null> => {
+    const d = readAgentDraft();
+    if (!d) return null;
+    // Empty secretai key => the user relied on a linked portal account; omit it
+    // so the server resolves the stored key (matches the create-agent flow).
+    const secretaiApiKey = (d.secretaiKey ?? "").trim() || undefined;
+    const res = await fetch("/api/portal/submit-deployment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        runtime: d.runtime,
+        tier: d.tier,
+        secretaiApiKey,
+        secretaiModel: d.tier === "secret" ? d.secretaiModel : undefined,
+        anthropicApiKey: d.tier === "byo" && !d.selectedKeyId ? (d.anthropicKey ?? "").trim() : undefined,
+        anthropicKeyId: d.tier === "byo" && d.selectedKeyId ? d.selectedKeyId : undefined,
+        telegramEnabled: d.telegramChoice === "enabled",
+        telegramBotToken: d.telegramChoice === "enabled" ? (d.botToken ?? "").trim() : undefined,
+        telegramChatId: d.telegramChoice === "enabled" ? (d.chatId ?? "").trim() : undefined,
+        telegramBotUsername: d.telegramChoice === "enabled" ? d.botUsername : undefined,
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new Error(`Forge failed (${res.status}). ${detail.slice(0, 200)}`);
+    }
+    const body = (await res.json()) as { deployment_id: string };
+    try {
+      if (secretaiApiKey) {
+        sessionStorage.setItem(`secret-claw:apikey:${body.deployment_id}`, secretaiApiKey);
+      }
+      sessionStorage.removeItem(AGENT_DRAFT_STORAGE_KEY);
+    } catch {
+      // sessionStorage may be blocked; the agent still exists server-side.
+    }
+    return body.deployment_id;
+  }, []);
+
+  // Called once the subscription is confirmed. Prefers forging the pending draft
+  // and opening its details page; on any failure returns to the create-agent
+  // form (draft preserved) so nothing is lost; with no draft, honors `next`.
+  const finishAfterSubscribe = useCallback(async () => {
+    try {
+      const id = await forgeDraftAgent();
+      if (id) {
+        router.push(`/agents/${id}`);
+        return;
+      }
+    } catch {
+      router.push("/create-agent");
+      return;
+    }
+    router.push(nextRef.current);
+  }, [forgeDraftAgent, router]);
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -177,7 +266,7 @@ export default function SubscribePage() {
           const body = await res.json();
           if (res.status === 409) {
             setStage("success");
-            setTimeout(() => router.push(nextRef.current), 1500);
+            setTimeout(() => void finishAfterSubscribe(), 1500);
             return;
           }
           if (!res.ok) {
@@ -185,7 +274,7 @@ export default function SubscribePage() {
             return;
           }
           setStage("success");
-          setTimeout(() => router.push(nextRef.current), 1500);
+          setTimeout(() => void finishAfterSubscribe(), 1500);
         } catch {
           resetForRetry("Network error — please try again.");
         }
@@ -212,8 +301,8 @@ export default function SubscribePage() {
             <div className="mb-4 text-4xl">✓</div>
             <h2 className="text-xl font-black mb-2" style={{ color: "var(--cast)" }}>You&apos;re in.</h2>
             <p className="text-sm" style={{ color: "var(--cast-dim)" }}>
-              {nextRef.current.startsWith("/create-agent")
-                ? "Taking you back to finish your agent…"
+              {hasDraft
+                ? "Forging your agent…"
                 : "Redirecting to your dashboard…"}
             </p>
           </div>
