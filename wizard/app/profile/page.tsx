@@ -11,6 +11,7 @@ import { AnthropicKeysCard } from "@/components/anthropic/AnthropicKeysCard";
 interface SubData {
   status: "trialing" | "active" | "canceled" | "past_due" | "pending" | "none";
   active: boolean;
+  isPromo?: boolean;
   trialEndsAt: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
@@ -180,7 +181,25 @@ export default function ProfilePage() {
 
               {/* Details */}
               <div className="flex flex-col gap-2">
-                {sub.trialEndsAt && daysLeft(sub.trialEndsAt) > 0 && sub.status !== "canceled" && (() => {
+                {/* Promo grants run to currentPeriodEnd with no trial and no card on file,
+                    so they get their own panel instead of the trial/renewal copy below. */}
+                {sub.isPromo && sub.currentPeriodEnd && sub.status !== "canceled" && (() => {
+                  const left = daysLeft(sub.currentPeriodEnd);
+                  return (
+                    <div className="flex flex-col gap-2 rounded-[10px] border p-3" style={{ background: "rgba(56,161,105,0.05)", borderColor: "rgba(56,161,105,0.2)" }}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span style={{ color: "var(--cast-dim)" }}>Promo access</span>
+                        <span className="font-semibold" style={{ color: "var(--verify)" }}>
+                          {left === 0 ? "Ends today" : `${left} day${left === 1 ? "" : "s"} left`}
+                        </span>
+                      </div>
+                      <p className="text-xs" style={{ color: "var(--cast-dimmer)" }}>
+                        Free access until {fmt(sub.currentPeriodEnd)} · no payment method on file
+                      </p>
+                    </div>
+                  );
+                })()}
+                {!sub.isPromo && sub.trialEndsAt && daysLeft(sub.trialEndsAt) > 0 && sub.status !== "canceled" && (() => {
                   const left = daysLeft(sub.trialEndsAt);
                   const pct = Math.min(100, Math.round(((7 - left) / 7) * 100));
                   return (
@@ -204,7 +223,7 @@ export default function ProfilePage() {
                     </div>
                   );
                 })()}
-                {sub.currentPeriodEnd && sub.status !== "canceled" && !(sub.trialEndsAt && daysLeft(sub.trialEndsAt) > 0) && (
+                {sub.currentPeriodEnd && sub.status !== "canceled" && !sub.isPromo && !(sub.trialEndsAt && daysLeft(sub.trialEndsAt) > 0) && (
                   <Row
                     label={sub.cancelAtPeriodEnd ? "Access until" : "Next renewal"}
                     value={fmt(sub.currentPeriodEnd)}

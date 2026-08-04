@@ -14,16 +14,22 @@ export async function GET() {
   const sub = await getSubscription(user.sub);
   if (!sub) return NextResponse.json({ status: "none" });
 
-  // Fall back to createdAt + 7 days for subscriptions saved before trialEndsAt was always set
+  // Promo-granted subscriptions have no trial at all — they run to currentPeriodEnd.
+  const isPromo = sub.planId === PROMO_PLAN_ID;
+
+  // Fall back to createdAt + 7 days for BlueSnap subscriptions saved before trialEndsAt
+  // was always set. Promo rows keep a null trialEndsAt, so they must skip this back-fill —
+  // otherwise a promo grant renders as a fabricated 7-day trial.
   const trialEndsAt =
     sub.trialEndsAt?.toISOString() ??
-    (isActive(sub.status)
+    (!isPromo && isActive(sub.status)
       ? new Date(sub.createdAt.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
       : null);
 
   return NextResponse.json({
     status: sub.status,
     active: isActive(sub.status),
+    isPromo,
     trialEndsAt,
     currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
     cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
