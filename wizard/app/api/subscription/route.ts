@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
-import { getSubscription } from "@/lib/subscription";
+import { getSubscription, isSubscriptionLive } from "@/lib/subscription";
 import { cancelSubscription, isActive } from "@/lib/bluesnap";
 import { PROMO_PLAN_ID } from "@/lib/promocode";
 import { prisma } from "@/lib/db/prisma";
@@ -28,7 +28,7 @@ export async function GET() {
 
   return NextResponse.json({
     status: sub.status,
-    active: isActive(sub.status),
+    active: isSubscriptionLive(sub),
     isPromo,
     trialEndsAt,
     currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,

@@ -32,8 +32,11 @@ function daysLeft(iso: string | null): number {
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
 }
 
-function StatusBadge({ status }: { status: SubData["status"] }) {
-  const map: Record<SubData["status"], { label: string; color: string; bg: string }> = {
+type BadgeStatus = SubData["status"] | "expired";
+
+function StatusBadge({ status }: { status: BadgeStatus }) {
+  const map: Record<BadgeStatus, { label: string; color: string; bg: string }> = {
+    expired:   { label: "Expired",  color: "#ef4444",        bg: "rgba(239,68,68,0.1)" },
     trialing:  { label: "Trial",    color: "var(--verify)",  bg: "rgba(56,161,105,0.12)" },
     active:    { label: "Active",   color: "var(--verify)",  bg: "rgba(56,161,105,0.12)" },
     past_due:  { label: "Past due", color: "var(--ember2)",  bg: "rgba(255,122,24,0.12)" },
@@ -106,6 +109,7 @@ export default function ProfilePage() {
 
   const canCancel =
     sub &&
+    sub.active &&
     (sub.status === "trialing" || sub.status === "active") &&
     !sub.cancelAtPeriodEnd &&
     cancelState !== "done";
@@ -176,7 +180,7 @@ export default function ProfilePage() {
               {/* Status row */}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold" style={{ color: "var(--cast)" }}>SecretForge Pro</span>
-                <StatusBadge status={sub.status} />
+                <StatusBadge status={sub.isPromo && !sub.active ? "expired" : sub.status} />
               </div>
 
               {/* Details */}
@@ -184,18 +188,35 @@ export default function ProfilePage() {
                 {/* Promo grants run to currentPeriodEnd with no trial and no card on file,
                     so they get their own panel instead of the trial/renewal copy below. */}
                 {sub.isPromo && sub.currentPeriodEnd && sub.status !== "canceled" && (() => {
+                  // `active` already accounts for the promo end date, so an elapsed
+                  // promo shows as expired even though its stored status is still "active".
+                  const expired = !sub.active;
                   const left = daysLeft(sub.currentPeriodEnd);
                   return (
-                    <div className="flex flex-col gap-2 rounded-[10px] border p-3" style={{ background: "rgba(56,161,105,0.05)", borderColor: "rgba(56,161,105,0.2)" }}>
+                    <div
+                      className="flex flex-col gap-2 rounded-[10px] border p-3"
+                      style={
+                        expired
+                          ? { background: "rgba(239,68,68,0.05)", borderColor: "rgba(239,68,68,0.2)" }
+                          : { background: "rgba(56,161,105,0.05)", borderColor: "rgba(56,161,105,0.2)" }
+                      }
+                    >
                       <div className="flex items-center justify-between text-sm">
                         <span style={{ color: "var(--cast-dim)" }}>Promo access</span>
-                        <span className="font-semibold" style={{ color: "var(--verify)" }}>
-                          {left === 0 ? "Ends today" : `${left} day${left === 1 ? "" : "s"} left`}
+                        <span className="font-semibold" style={{ color: expired ? "#ef4444" : "var(--verify)" }}>
+                          {expired ? "Expired" : left === 0 ? "Ends today" : `${left} day${left === 1 ? "" : "s"} left`}
                         </span>
                       </div>
                       <p className="text-xs" style={{ color: "var(--cast-dimmer)" }}>
-                        Free access until {fmt(sub.currentPeriodEnd)} · no payment method on file
+                        {expired
+                          ? `Ended ${fmt(sub.currentPeriodEnd)}`
+                          : `Free access until ${fmt(sub.currentPeriodEnd)} · no payment method on file`}
                       </p>
+                      {expired && (
+                        <a href="/subscribe" className="fgbtn inline-block self-start">
+                          Subscribe →
+                        </a>
+                      )}
                     </div>
                   );
                 })()}

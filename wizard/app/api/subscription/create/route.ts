@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { createSubscription, getOrCreateProPlanId } from "@/lib/bluesnap";
 import { prisma } from "@/lib/db/prisma";
+import { isSubscriptionLive } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
   if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const existing = await prisma.subscription.findUnique({ where: { userSub: user.sub } });
-  if (existing && (existing.status === "trialing" || existing.status === "active")) {
+  if (existing && isSubscriptionLive(existing)) {
     return NextResponse.json({ error: "Already subscribed" }, { status: 409 });
   }
 
