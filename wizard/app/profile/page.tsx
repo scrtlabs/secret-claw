@@ -326,7 +326,12 @@ export default function ProfilePage() {
         </div>
 
         {/* Promo code redemption */}
-        {sessionStatus === "authenticated" && <PromoRedeemCard onRedeemed={loadSub} />}
+        {/* Held back only on the very first load (so the form doesn't flash before we
+            know whether it's redeemable); later refreshes keep it mounted, which
+            preserves the redeem result message. */}
+        {sessionStatus === "authenticated" && (sub !== null || !subLoading) && (
+          <PromoRedeemCard blocked={sub !== null && sub.active && !sub.isPromo} onRedeemed={loadSub} />
+        )}
 
         {/* API keys management */}
         {sessionStatus === "authenticated" && <AnthropicKeysCard />}
@@ -346,11 +351,19 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function PromoRedeemCard({ onRedeemed }: { onRedeemed: () => Promise<unknown> | void }) {
+function PromoRedeemCard({
+  blocked,
+  onRedeemed,
+}: {
+  blocked: boolean;
+  onRedeemed: () => Promise<unknown> | void;
+}) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const disabled = busy || !code.trim();
 
   async function redeem(e: React.FormEvent) {
     e.preventDefault();
@@ -364,15 +377,22 @@ function PromoRedeemCard({ onRedeemed }: { onRedeemed: () => Promise<unknown> | 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: code.trim() }),
       });
-      const body = (await res.json().catch(() => ({}))) as { durationDays?: number; error?: string };
+      const body = (await res.json().catch(() => ({}))) as {
+        durationDays?: number;
+        currentPeriodEnd?: string;
+        error?: string;
+      };
       if (!res.ok) {
         setError(body.error ?? `Could not redeem (${res.status}).`);
         return;
       }
+      const days = body.durationDays
+        ? `${body.durationDays} day${body.durationDays === 1 ? "" : "s"} of free Pro access added`
+        : "Promo code redeemed";
       setSuccess(
-        body.durationDays
-          ? `Redeemed — ${body.durationDays} days of free Pro access added.`
-          : "Promo code redeemed.",
+        body.currentPeriodEnd
+          ? `${days} — access until ${fmt(body.currentPeriodEnd)}.`
+          : `${days}.`,
       );
       setCode("");
       await onRedeemed();
@@ -388,30 +408,57 @@ function PromoRedeemCard({ onRedeemed }: { onRedeemed: () => Promise<unknown> | 
       className="rounded-[14px] border p-6 flex flex-col gap-4"
       style={{ background: "linear-gradient(180deg, #1a1613, #141110)", borderColor: "var(--bronze)" }}
     >
-      <p
-        className="text-[10px] uppercase tracking-widest"
-        style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
-      >
-        Promo code
-      </p>
-      <form onSubmit={redeem} className="flex flex-col gap-3 sm:flex-row sm:items-start">
-        <input
-          value={code}
-          onChange={(e) => { setCode(e.target.value); setError(null); setSuccess(null); }}
-          placeholder="Enter a promo code"
-          className="block w-full rounded-md border border-[var(--bronze)] px-3 py-2 text-sm placeholder:text-[var(--cast-dimmer)] focus:border-[var(--molten)] focus:outline-none focus:ring-1 focus:ring-[var(--molten)]/30"
-          style={{ background: "var(--iron)", color: "var(--cast)", textTransform: "uppercase" }}
-        />
-        <button
-          type="submit"
-          disabled={busy || !code.trim()}
-          className={`fgbtn whitespace-nowrap ${busy || !code.trim() ? "fgbtn--idle" : ""}`}
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="promo-code"
+          className="text-[10px] uppercase tracking-widest"
+          style={{ color: "var(--cast-dimmer)", fontFamily: "var(--font-mono)" }}
         >
-          {busy ? "Redeeming…" : "Redeem"}
-        </button>
-      </form>
-      {error && <p className="text-xs" style={{ color: "#ef4444" }}>{error}</p>}
-      {success && <p className="text-xs" style={{ color: "var(--verify)" }}>{success}</p>}
+          Promo code
+        </label>
+        <p className="text-xs" style={{ color: "var(--cast-dim)" }}>
+          Redeem a code for free Pro access. Codes stack — extra days are added to the end of your current promo period.
+        </p>
+      </div>
+
+      {/* A live paid subscription makes the server reject any code (409), so say
+          that up front instead of letting the user discover it after submitting. */}
+      {blocked ? (
+        <p className="text-sm" style={{ color: "var(--cast-dim)" }}>
+          You already have an active paid subscription — promo codes can only be redeemed once it ends.
+        </p>
+      ) : (
+        <form onSubmit={redeem} className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+          <input
+            id="promo-code"
+            value={code}
+            onChange={(e) => { setCode(e.target.value); setError(null); setSuccess(null); }}
+            disabled={busy}
+            placeholder="ENTER CODE"
+            maxLength={64}
+            autoComplete="off"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-invalid={error ? true : undefined}
+            className="min-w-0 flex-1 rounded-md border border-[var(--bronze)] px-3 py-2 text-sm font-mono tracking-[0.14em] placeholder:tracking-normal placeholder:text-[var(--cast-dimmer)] focus:border-[var(--molten)] focus:outline-none focus:ring-1 focus:ring-[var(--molten)]/30 disabled:opacity-60"
+            style={{ background: "var(--iron)", color: "var(--cast)", textTransform: "uppercase" }}
+          />
+          <button
+            type="submit"
+            disabled={disabled}
+            aria-busy={busy}
+            className={`fgbtn fgbtn--sm whitespace-nowrap ${disabled ? "fgbtn--idle" : ""}`}
+          >
+            {busy ? "Redeeming…" : "Redeem"}
+          </button>
+        </form>
+      )}
+
+      <div aria-live="polite" className="empty:hidden">
+        {error && <p className="text-xs" style={{ color: "#ef4444" }}>{error}</p>}
+        {success && <p className="text-xs" style={{ color: "var(--verify)" }}>{success}</p>}
+      </div>
     </div>
   );
 }
